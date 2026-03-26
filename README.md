@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# 🌌 Lorekeeper (Mythos Platform)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Mythos Dashboard](https://img.shields.io/badge/Status-Active-success) ![React](https://img.shields.io/badge/React-18-blue) ![ThreeJS](https://img.shields.io/badge/Three.js-3D-black) ![Tailwind](https://img.shields.io/badge/TailwindCSS-v4-06B6D4) 
 
-Currently, two official plugins are available:
+**Lorekeeper** (formerly Mythos) is a next-generation worldbuilding and narrative tracking dashboard. Built for authors, dungeon masters, and world designers, it provides a highly visual and structured way to track characters, locations, events, and their interconnected relationships.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ✨ Features
 
-## React Compiler
+- **🪐 3D Cosmos Map**: A fully interactive, native WebGL 3D network graph built with React Three Fiber. Visualize relationships between characters, factions, and places in real-time.
+- **📚 Entity Management**: Dedicated tables and hubs for Characters, Places, Events, and Mythology.
+- **🎨 Premium Dark-Glass UI**: State-of-the-art aesthetic using Tailwind CSS with deep ambient glows, frosted glassmorphism borders, and bespoke typography.
+- **⚡ Blazing Fast**: Powered by Vite and globally managed by Zustand for zero-latency data reflection across the entire application.
+- **🖥️ Responsive Workspace**: Features a toggleable, collapsible sidebar designed to maximize your screen real estate for the 3D map or large relationship tables.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🛠️ Technology Stack
 
-## Expanding the ESLint configuration
+- **Core**: [React 18](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) + [Vite](https://vitejs.dev/)
+- **3D Rendering**: [React Three Fiber](https://docs.pmnd.rs/react-three-fiber/) + [Three.js](https://threejs.org/) + [Drei](https://github.com/pmndrs/drei)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) + Custom Glassmorphism Utility Layers
+- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
+- **Routing**: React Router v7
+- **Icons**: [Lucide React](https://lucide.dev/)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 🚀 Getting Started
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
+Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Installation
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/YusufUzak1/Lorekeeper.git
+   cd Lorekeeper
+   ```
+
+2. Install the dependencies (Note: We strictly use React-Three-Fiber v8 and React 18):
+   ```bash
+   npm install --legacy-peer-deps
+   ```
+
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open your browser and navigate to `http://localhost:5173/`.
+
+## 📁 Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── dashboard/       # Main dashboard layout
+│   │   ├── cosmos/      # 3D Node Map components (R3F)
+│   │   └── ui/          # Sidebar, Topbar, Entity Tables
+│   ├── HeroSection.tsx  # Landing page entry point
+│   ...
+├── store/               # Zustand state stores
+│   └── useUniverseStore.ts # Central nervous system for entity data
+├── index.css            # Tailwind directives and custom variables
+├── types.ts             # TypeScript interfaces for Entities and Connections
+└── App.tsx              # React Router setup
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🧠 Architecture Notes
+- **Unified Global State:** The `useUniverseStore` dictates the absolute truth. If a character is added or their "faction" changes, the 3D Cosmos Map will instantly rerender the node's geometry and colors to reflect this change.
+- **React 18 Compatibility:** To prevent React compilation errors, the 3D map relies on `react-three-fiber@8` rather than the React 19-bound `v9`.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
+*Created with ❤️ for storytellers and worldbuilders.*
