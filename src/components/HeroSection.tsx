@@ -127,9 +127,11 @@ function pickRandom() {
 
 type HeroSectionProps = {
   onEnterUniverse?: () => void;
+  onLogin?: () => void;
+  onRegister?: () => void;
 };
 
-export function HeroSection({ onEnterUniverse }: HeroSectionProps) {
+export function HeroSection({ onEnterUniverse, onLogin, onRegister }: HeroSectionProps) {
   // Her sayfa açılışında tek seferlik rastgele seçim
   const quote = useMemo(() => pickRandom(), []);
 
@@ -179,16 +181,34 @@ export function HeroSection({ onEnterUniverse }: HeroSectionProps) {
           </motion.span>
         </motion.div>
         
-        <motion.button
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 5.5 }}
-          className="text-sm font-sans text-white/40 tracking-widest uppercase cursor-pointer hover:text-mythos-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-mythos-accent/80 focus-visible:ring-offset-2 focus-visible:ring-offset-mythos-bg"
-          onClick={onEnterUniverse}
-          type="button"
+          className="flex items-center gap-3"
         >
-          Evrene Giriş Yap
-        </motion.button>
+          <button
+            className="rounded-full border border-mythos-accent/50 bg-mythos-accent/10 px-5 py-2 text-xs font-sans tracking-[0.22em] uppercase text-white hover:bg-mythos-accent/25 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-mythos-accent/80 focus-visible:ring-offset-2 focus-visible:ring-offset-mythos-bg"
+            onClick={onLogin}
+            type="button"
+          >
+            Giris Yap
+          </button>
+          <button
+            className="rounded-full border border-white/20 bg-white/5 px-5 py-2 text-xs font-sans tracking-[0.22em] uppercase text-white/90 hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-2 focus-visible:ring-offset-mythos-bg"
+            onClick={onRegister}
+            type="button"
+          >
+            Kayit Ol
+          </button>
+          <button
+            className="text-xs font-sans text-white/45 tracking-[0.22em] uppercase cursor-pointer hover:text-mythos-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-mythos-accent/80 focus-visible:ring-offset-2 focus-visible:ring-offset-mythos-bg"
+            onClick={onEnterUniverse}
+            type="button"
+          >
+            Misafir Girisi
+          </button>
+        </motion.div>
       </div>
     </section>
   );

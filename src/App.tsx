@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
+import { getCurrentUser, signOut } from 'aws-amplify/auth';
 
 import { HeroSection } from './components/HeroSection';
 import { UniverseHub } from './components/UniverseHub';
@@ -7,6 +9,8 @@ import DashboardLayout from './components/dashboard/DashboardLayout';
 import { EntityTable } from './components/dashboard/ui/EntityTable';
 import { CosmosCanvas } from './components/dashboard/cosmos/CosmosCanvas';
 import { MythologyView } from './components/dashboard/mythology/MythologyView';
+import { AuthPage } from './components/AuthPage';
+import { useAuthStore } from './store/useAuthStore';
 
 // Animasyonlu sayfa geçiş sarmalayıcısı
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -40,9 +44,41 @@ function LegacyIframeView({ viewName = 'cosmos', label = 'Etkileşimli 3D Kozmos
 
 import { CustomCursor } from './components/ui/CustomCursor';
 
+function LogoutRoute({ onLogout }: { onLogout: () => Promise<void> }) {
+  useEffect(() => {
+    void onLogout();
+  }, [onLogout]);
+
+  return <Navigate to="/" replace />;
+}
+
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAuthenticated, login, logout } = useAuthStore();
+
+  useEffect(() => {
+    const syncAuthSession = async () => {
+      try {
+        const user = await getCurrentUser();
+        const email = user.signInDetails?.loginId ?? user.username;
+        login(email);
+      } catch {
+        logout();
+      }
+    };
+
+    void syncAuthSession();
+  }, [login, logout]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } finally {
+      logout();
+      navigate('/', { replace: true });
+    }
+  };
 
   return (
     <main className="relative min-h-screen bg-mythos-bg selection:bg-mythos-accent/30 selection:text-white">
@@ -57,25 +93,43 @@ function App() {
           {/* Landing / Hero */}
           <Route path="/" element={
             <PageWrapper>
-              <HeroSection onEnterUniverse={() => navigate('/hub')} />
+              <HeroSection
+                onEnterUniverse={() => navigate('/hub')}
+                onLogin={() => navigate('/auth?mode=login')}
+                onRegister={() => navigate('/auth?mode=signup')}
+              />
+            </PageWrapper>
+          } />
+
+          <Route path="/auth" element={
+            <PageWrapper>
+              <AuthPage />
             </PageWrapper>
           } />
 
           {/* Universe Hub */}
           <Route path="/hub" element={
-            <PageWrapper>
-              <UniverseHub
-                onEnterExisting={() => navigate('/dashboard')}
-                onCreateUniverse={() => navigate('/dashboard')}
-              />
-            </PageWrapper>
+            isAuthenticated ? (
+              <PageWrapper>
+                <UniverseHub
+                  onEnterExisting={() => navigate('/dashboard')}
+                  onCreateUniverse={() => navigate('/dashboard')}
+                />
+              </PageWrapper>
+            ) : (
+              <Navigate to="/auth?mode=login" replace />
+            )
           } />
 
           {/* Dashboard Application */}
           <Route path="/dashboard" element={
-            <PageWrapper>
-              <DashboardLayout />
-            </PageWrapper>
+            isAuthenticated ? (
+              <PageWrapper>
+                <DashboardLayout />
+              </PageWrapper>
+            ) : (
+              <Navigate to="/auth?mode=login" replace />
+            )
           }>
             {/* Alt Route'lar */}
             <Route index element={<CosmosCanvas />} />
@@ -91,7 +145,7 @@ function App() {
             <Route path="settings" element={<LegacyIframeView viewName="settings" label="Sistem Ayarları (Legacy)" />} />
             
             {/* Logout -> Hero */}
-            <Route path="logout" element={<Navigate to="/" replace />} />
+            <Route path="logout" element={<LogoutRoute onLogout={handleLogout} />} />
           </Route>
 
           {/* Fallback */}
