@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <style>
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;cursor:none !important;}
 :root{
   /* ── Dark Space Base ── */
   --void:#0A0A0B;
@@ -303,8 +303,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);cursor:n
 </head>
 <body>
 <div id="space-bg"><canvas id="nebula-canvas"></canvas></div>
-<div id="cursor"></div>
-<div id="cursor-ring"></div>
 <div id="noise"></div>
 
 <aside id="sidebar">
@@ -379,14 +377,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);cursor:n
 
   <!-- MYTH -->
   <div class="pv" id="myth-view" style="padding:28px 32px 48px;">
-    <div class="wph"><div class="wpt">Panteon & Mitoloji</div><div class="wpd">Evrenin yaratılışında rol oynayan ilk varlıklar, tanrılar ve efsanevi güçler.</div></div>
     <div class="myth-grid" id="mgrid"></div>
   </div>
 
   <!-- TIMELINE -->
   <div class="pv" id="timeline-view" style="padding:24px 32px 0;">
     <div style="flex-shrink:0">
-      <div class="wph" style="margin-bottom:0"><div class="wpt">Zaman Çizelgesi</div><div class="wpd">Evrenin büyük çağlarındaki dönüm noktaları.</div></div>
       <div class="tl-era-tabs" id="tltabs"></div>
     </div>
     <div class="tl-canvas" id="tlcanvas">
@@ -411,7 +407,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);cursor:n
   <!-- LANG -->
   <div class="pv" id="lang-view" style="padding:24px 32px 48px;">
     <div style="flex-shrink:0">
-      <div class="wph" style="margin-bottom:12px"><div class="wpt">Diller & Alfabeler</div><div class="wpd">Evrenin konuşulan ve yazılan dilleri; glyph'ler, ses sistemleri ve örnek ifadeler.</div></div>
       <div class="lang-tabs" id="ltabs"></div>
     </div>
     <div id="lpanels"></div>
@@ -419,10 +414,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);cursor:n
 
   <!-- SETTINGS -->
   <div class="pv" id="settings-view" style="padding:28px 32px 48px;">
-    <div class="wph" style="flex-shrink:0;margin-bottom:20px">
-      <div class="wpt">Ayarlar</div>
-      <div class="wpd">Hesap, görünüm, evren yapılandırması ve güvenlik tercihlerinizi buradan yönetin.</div>
-    </div>
     <div class="settings-grid">
       <div class="settings-nav" id="snav"></div>
       <div id="spanel-wrap"></div>
@@ -543,11 +534,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--void);cursor:n
   });
 })();
 
-/* ── CURSOR ── */
-const cur=document.getElementById('cursor'),curR=document.getElementById('cursor-ring');
-let mx=window.innerWidth/2,my=window.innerHeight/2,rx=mx,ry=my;
-document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;});
-(function ac(){rx+=(mx-rx)*.15;ry+=(my-ry)*.15;cur.style.left=mx+'px';cur.style.top=my+'px';curR.style.left=rx+'px';curR.style.top=ry+'px';requestAnimationFrame(ac);})();
+/* ── CURSOR SYNC TO PARENT ── */
+document.addEventListener('mousemove', e => {
+  window.parent.postMessage({ type: 'mousemove', clientX: e.clientX, clientY: e.clientY }, '*');
+});
 
 /* ── NAV ── */
 const META={

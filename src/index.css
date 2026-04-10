@@ -12,6 +12,10 @@
 }
 
 @layer base {
+  body, * {
+    cursor: none !important;
+  }
+  
   body {
     background-color: var(--color-mythos-bg);
     color: #e5e7eb;
@@ -41,5 +45,31 @@
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--color-glass-border);
+  }
+
+  /* Tema uyumlu scrollbar (Chromium/WebKit + Firefox) */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212, 175, 55, 0.55) rgba(39, 39, 42, 0.85);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(39, 39, 42, 0.85);
+    border-radius: 999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.45);
+    border-radius: 999px;
+    border: 2px solid rgba(10, 10, 11, 0.85);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(212, 175, 55, 0.65);
   }
 }

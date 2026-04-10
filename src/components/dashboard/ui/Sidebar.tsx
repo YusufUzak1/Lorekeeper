@@ -12,7 +12,6 @@ import {
   Languages, 
   Settings, 
   LogOut,
-  ChevronLeft,
   ChevronRight
 } from 'lucide-react';
 
@@ -64,10 +63,14 @@ export function Sidebar() {
       {/* Collapse Toggle Button */}
       <button 
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute top-1/2 -right-3 transform -translate-y-1/2 w-6 h-12 bg-[#0A0A0B] border border-glass-border rounded-r-md flex items-center justify-center text-mythos-accent/50 hover:text-mythos-accent cursor-pointer z-50 opacity-0 hover:opacity-100 transition-opacity drop-shadow-[0_0_5px_rgba(212,175,55,0.2)] group-hover:opacity-100"
-        style={{ opacity: isCollapsed ? 1 : undefined }}
+        title={isCollapsed ? 'Sidebar\'ı Genişlet' : 'Sidebar\'ı Daralt'}
+        className="absolute top-1/2 -right-3.5 transform -translate-y-1/2 w-7 h-14 bg-[#0A0A0B]/90 backdrop-blur-sm border border-glass-border border-l-0 rounded-r-lg flex items-center justify-center text-mythos-accent/60 hover:text-mythos-accent cursor-pointer z-50 transition-all duration-300 hover:bg-[#0A0A0B] hover:w-8 hover:shadow-[0_0_15px_rgba(212,175,55,0.15)] group/toggle"
       >
-        {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        <div className={`transition-transform duration-300 ${isCollapsed ? 'rotate-0' : 'rotate-180'}`}>
+          <ChevronRight size={14} />
+        </div>
+        {/* Subtle glow effect on hover */}
+        <div className="absolute inset-0 rounded-r-lg opacity-0 group-hover/toggle:opacity-100 transition-opacity duration-300 bg-gradient-to-r from-transparent to-mythos-accent/5 pointer-events-none" />
       </button>
 
       {/* Logo Area */}
@@ -104,7 +107,7 @@ export function Sidebar() {
                   end={item.path === '/dashboard'}
                   title={isCollapsed ? item.label : undefined}
                   className={({ isActive }) => [
-                    `relative flex items-center py-2.5 font-serif text-[0.65rem] tracking-[0.15em] uppercase transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-6'}`,
+                    `group/sidebarItem relative flex items-center py-2.5 font-serif text-[0.65rem] tracking-[0.15em] uppercase transition-all duration-300 ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-6'}`,
                     isActive ? 'text-[#E8D48B]' : 'text-gray-200/40 hover:text-[#E8D48B]'
                   ].join(' ')}
                 >
@@ -113,7 +116,9 @@ export function Sidebar() {
                       {/* Left glowing indicator line */}
                       <div className={[
                         'absolute left-0 top-1/2 -translate-y-1/2 w-[2px] bg-gradient-to-b from-mythos-accent/10 via-mythos-accent to-mythos-accent/10 transition-all duration-300 shadow-[0_0_10px_rgba(212,175,55,0.5)]',
-                        isActive ? 'h-[70%] opacity-100' : 'h-0 opacity-0 group-hover:h-[70%] group-hover:opacity-100'
+                        isActive
+                          ? 'h-[70%] opacity-100'
+                          : 'h-0 opacity-0 group-hover/sidebarItem:h-[70%] group-hover/sidebarItem:opacity-100'
                       ].join(' ')} />
                       
                       <div className="w-5 flex justify-center items-center">{item.icon}</div>

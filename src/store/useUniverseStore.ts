@@ -23,6 +23,9 @@ import type {
   Universe,
 } from '@/types';
 
+// ── Filtre Tipleri ──
+export type EntityFilterType = EntityType | 'all';
+
 import {
   SEED_ENTITIES,
   SEED_CONNECTIONS,
@@ -50,6 +53,12 @@ interface UniverseState {
   timeline: TimelineEvent[];
   regions: MapRegion[];
   languages: Language[];
+
+  // ── Arama & Filtreleme ──
+  searchQuery: string;
+  activeFilter: EntityFilterType;
+  setSearchQuery: (q: string) => void;
+  setActiveFilter: (f: EntityFilterType) => void;
 
   // ── Evren aksiyonları ──
   setCurrentUniverseId: (id: string | null) => void;
@@ -103,6 +112,8 @@ const DEFAULT_STATE = {
   timeline: SEED_TIMELINE,
   regions: SEED_REGIONS,
   languages: SEED_LANGUAGES,
+  searchQuery: '',
+  activeFilter: 'all' as EntityFilterType,
 };
 
 // ═══════════════════════════════════════════════
@@ -114,6 +125,10 @@ export const useUniverseStore = create<UniverseState>()(
     (set, get) => ({
       // ── Init ──
       ...DEFAULT_STATE,
+
+      // ─── Arama & Filtreleme ──────────────
+      setSearchQuery: (q) => set({ searchQuery: q }),
+      setActiveFilter: (f) => set({ activeFilter: f }),
 
       // ─── Evren ─────────────────────────────
       setCurrentUniverseId: (id) => set({ currentUniverseId: id }),

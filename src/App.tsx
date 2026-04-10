@@ -33,13 +33,11 @@ function LegacyIframeView({ viewName = 'cosmos', label = 'Etkileşimli 3D Kozmos
         className="w-full h-full border-0"
         style={{ pointerEvents: 'auto' }}
       />
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-black/80 border border-mythos-accent text-mythos-accent font-serif text-xs 
-                      tracking-[0.1em] rounded-sm backdrop-blur-md z-50 pointer-events-none">
-        {label}
-      </div>
     </div>
   );
 }
+
+import { CustomCursor } from './components/ui/CustomCursor';
 
 function App() {
   const location = useLocation();
@@ -47,6 +45,9 @@ function App() {
 
   return (
     <main className="relative min-h-screen bg-mythos-bg selection:bg-mythos-accent/30 selection:text-white">
+      {/* Global Custom Cursor */}
+      <CustomCursor />
+      
       {/* Global Noise Overlay */}
       <div className="noise-bg" />
 

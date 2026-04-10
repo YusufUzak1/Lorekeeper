@@ -1,10 +1,23 @@
 import { useUniverseStore } from '@/store/useUniverseStore';
+import type { EntityFilterType } from '@/store/useUniverseStore';
 import { useLocation } from 'react-router-dom';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Search } from 'lucide-react';
+
+const FILTER_OPTIONS: { value: EntityFilterType; label: string }[] = [
+  { value: 'all',       label: 'Tümü' },
+  { value: 'character', label: 'Karakter' },
+  { value: 'place',     label: 'Mekan' },
+  { value: 'event',     label: 'Olay' },
+];
+
+// Entity sayfalarında filtre pill'lerini göster
+const ENTITY_ROUTES = ['/dashboard', '/dashboard/characters', '/dashboard/places', '/dashboard/events'];
 
 export function Topbar() {
-  const { entities, connections } = useUniverseStore();
+  const { entities, connections, activeFilter, setActiveFilter } = useUniverseStore();
   const location = useLocation();
+
+  const showFilters = ENTITY_ROUTES.includes(location.pathname);
 
   // Route bazlı başlık ve alt başlık belirleme
   const getPageInfo = () => {
@@ -34,8 +47,13 @@ export function Topbar() {
 
   const info = getPageInfo();
 
-  // Şimdilik view mode (3D vs Table) mock, ileride context'e alınabilir
-  const viewMode = 'cosmos'; 
+  // Ctrl+K trigger — CommandPalette kendi listener'ını kullanıyor
+  const triggerSearch = () => {
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+  };
+
+  // Şimdilik view mode (3D vs Table) mock
+  const viewMode: string = 'cosmos';
 
   return (
     <div className="h-14 flex items-center shrink-0 px-4 border-b border-glass-border bg-[#0a0a0b]/85 gap-3">
@@ -49,7 +67,44 @@ export function Topbar() {
         </div>
       </div>
 
+      {/* Filter Pills */}
+      {showFilters && (
+        <div className="flex items-center gap-1.5 ml-6">
+          {FILTER_OPTIONS.map((opt) => {
+            const isActive = activeFilter === opt.value;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => setActiveFilter(opt.value)}
+                className={[
+                  'px-3 py-1 text-[0.55rem] tracking-[0.15em] uppercase rounded-full border transition-all duration-200 font-sans cursor-pointer',
+                  isActive
+                    ? 'bg-mythos-accent/10 text-[#E8D48B] border-mythos-accent/30 shadow-[0_0_10px_rgba(212,175,55,0.15)]'
+                    : 'bg-transparent text-gray-200/35 border-white/5 hover:bg-white/5 hover:text-gray-200/60',
+                ].join(' ')}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       <div className="flex-1" />
+
+      {/* Search Trigger → CommandPalette */}
+      <button
+        onClick={triggerSearch}
+        className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-md border border-white/5 bg-white/[0.02] hover:bg-white/5 hover:border-white/10 transition-all cursor-pointer group"
+      >
+        <Search size={13} className="text-gray-200/30 group-hover:text-mythos-accent/60 transition-colors" />
+        <span className="text-[0.6rem] text-gray-200/25 tracking-wider font-sans group-hover:text-gray-200/40 transition-colors">
+          Ara...
+        </span>
+        <kbd className="px-1.5 py-0.5 text-[0.5rem] bg-white/5 border border-white/8 rounded text-gray-200/25 font-sans ml-3">
+          ⌘K
+        </kbd>
+      </button>
 
       {/* Stats Counter A */}
       <div className="flex flex-col items-end px-4 border-l border-glass-border">

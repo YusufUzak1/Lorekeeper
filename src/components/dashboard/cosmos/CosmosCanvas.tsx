@@ -11,11 +11,14 @@ import { CosmosEdge } from './CosmosEdge';
 import { CosmosUI } from './CosmosUI';
 
 export function CosmosCanvas() {
-  const { entities, connections } = useUniverseStore();
-  
-  // UI State
-  const [activeFilter, setActiveFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const { 
+    entities, 
+    connections,
+    activeFilter,
+    setActiveFilter,
+    searchQuery,
+    setSearchQuery
+  } = useUniverseStore();
   
   // Interaction State
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);

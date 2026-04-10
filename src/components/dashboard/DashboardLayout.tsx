@@ -1,10 +1,13 @@
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './ui/Sidebar';
 import { Topbar } from './ui/Topbar';
+import { CommandPalette } from '@/components/ui/CommandPalette';
 
 export default function DashboardLayout() {
   return (
     <div className="flex h-screen w-full bg-[#0A0A0B] text-gray-200 overflow-hidden font-sans">
+      {/* Global Command Palette (Ctrl+K) */}
+      <CommandPalette />
       {/* Background Noise Layer */}
       <div className="absolute inset-0 z-[-1] pointer-events-none opacity-[0.03]"
         style={{

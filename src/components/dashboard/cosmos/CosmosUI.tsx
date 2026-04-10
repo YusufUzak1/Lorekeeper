@@ -26,34 +26,8 @@ export function CosmosUI({
     // Pointer-events-none ile canvas tıklamalarını engellemiyoruz
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
       
-      {/* ÜST BÖLGE: Filtreler ve Arama */}
-      <div className="p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pointer-events-auto">
-        {/* Filtre Pill'leri */}
-        <div className="flex flex-wrap gap-2">
-          {['all', 'character', 'place', 'event'].map((filterType) => {
-            const labels: Record<string, string> = {
-              all: 'TÜMÜ',
-              character: 'KARAKTERLER',
-              place: 'MEKANLAR',
-              event: 'OLAYLAR',
-            };
-            const isActive = activeFilter === filterType;
-            return (
-              <button
-                key={filterType}
-                onClick={() => onFilterChange(filterType)}
-                className={`px-3 py-1 border font-serif text-[0.42rem] tracking-[0.15em] transition-all
-                  ${isActive 
-                    ? 'border-mythos-accent/40 text-[#E8D48B] bg-mythos-accent/10 drop-shadow-[0_0_12px_rgba(212,175,55,0.1)]' 
-                    : 'border-white/5 text-gray-200/40 hover:text-gray-200/80 bg-[#0e0e0f]/80'
-                  }`}
-              >
-                {labels[filterType]}
-              </button>
-            );
-          })}
-        </div>
-
+      {/* ÜST BÖLGE: Arama */}
+      <div className="p-4 flex flex-col md:flex-row justify-end items-start md:items-center gap-4 pointer-events-auto">
         {/* Arama Kutusu */}
         <div className="relative pointer-events-auto">
           <input
