@@ -222,10 +222,9 @@ resource "aws_cognito_user_pool" "main" {
 
   # E-posta doğrulama mesajı
   verification_message_template {
-    default_email_options {
-      email_message = "Lorekeeper platformuna hoş geldiniz! Doğrulama kodunuz: {####}"
-      email_subject = "Lorekeeper - E-posta Doğrulaması"
-    }
+    default_email_option = "CONFIRM_WITH_CODE"
+    email_message        = "Lorekeeper platformuna hoş geldiniz! Doğrulama kodunuz: {####}"
+    email_subject        = "Lorekeeper - E-posta Doğrulaması"
   }
 
   tags = {
