@@ -6,6 +6,7 @@ import { UniverseHub } from './components/UniverseHub';
 import DashboardLayout from './components/dashboard/DashboardLayout';
 import { EntityTable } from './components/dashboard/ui/EntityTable';
 import { CosmosCanvas } from './components/dashboard/cosmos/CosmosCanvas';
+import { MythologyView } from './components/dashboard/mythology/MythologyView';
 
 // Animasyonlu sayfa geçiş sarmalayıcısı
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -82,8 +83,8 @@ function App() {
             <Route path="places" element={<EntityTable />} />
             <Route path="events" element={<EntityTable />} />
             
-            {/* Geçici Legacy Yönlendirmeleri */}
-            <Route path="mythology" element={<LegacyIframeView viewName="myth" label="Mitoloji Modülü (Legacy)" />} />
+            {/* Geçiçi Legacy Yönlendirmeleri (ve yenilenenler) */}
+            <Route path="mythology" element={<MythologyView />} />
             <Route path="timeline" element={<LegacyIframeView viewName="timeline" label="Zaman Çizelgesi (Legacy)" />} />
             <Route path="maps" element={<LegacyIframeView viewName="map" label="Haritalar Modülü (Legacy)" />} />
             <Route path="languages" element={<LegacyIframeView viewName="lang" label="Diller ve Alfabeler (Legacy)" />} />
