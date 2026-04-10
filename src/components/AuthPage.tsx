@@ -7,6 +7,13 @@ import { useAuthStore } from '@/store/useAuthStore';
 
 type Mode = 'login' | 'signup';
 
+function buildUsernameFromEmail(email: string): string {
+  const local = email.split('@')[0] ?? 'user';
+  const normalized = local.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 18) || 'user';
+  const suffix = Math.random().toString(36).slice(2, 8);
+  return `${normalized}_${suffix}`;
+}
+
 export function AuthPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,6 +26,7 @@ export function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
+  const [pendingUsername, setPendingUsername] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -58,8 +66,9 @@ export function AuthPage() {
     setMessage(null);
 
     try {
+      const generatedUsername = buildUsernameFromEmail(email.trim());
       const result = await signUp({
-        username: email.trim(),
+        username: generatedUsername,
         password,
         options: {
           userAttributes: {
@@ -69,6 +78,7 @@ export function AuthPage() {
       });
 
       if (result.nextStep.signUpStep === 'CONFIRM_SIGN_UP') {
+        setPendingUsername(generatedUsername);
         setPendingEmail(email.trim());
         setMessage('Dogrulama kodu e-posta adresine gonderildi.');
       } else {
@@ -85,7 +95,7 @@ export function AuthPage() {
 
   const handleConfirm = async (e: FormEvent) => {
     e.preventDefault();
-    if (!pendingEmail) return;
+    if (!pendingEmail || !pendingUsername) return;
 
     setLoading(true);
     setError(null);
@@ -93,9 +103,10 @@ export function AuthPage() {
 
     try {
       await confirmSignUp({
-        username: pendingEmail,
+        username: pendingUsername,
         confirmationCode: verificationCode.trim(),
       });
+      setPendingUsername(null);
       setPendingEmail(null);
       setVerificationCode('');
       setMode('login');
@@ -110,14 +121,14 @@ export function AuthPage() {
   };
 
   const handleResendCode = async () => {
-    if (!pendingEmail) return;
+    if (!pendingEmail || !pendingUsername) return;
 
     setLoading(true);
     setError(null);
     setMessage(null);
 
     try {
-      await resendSignUpCode({ username: pendingEmail });
+      await resendSignUpCode({ username: pendingUsername });
       setMessage('Yeni dogrulama kodu gonderildi.');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Kod tekrar gonderilemedi.';
