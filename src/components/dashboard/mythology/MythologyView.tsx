@@ -52,6 +52,7 @@ export function MythologyView() {
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
       onMouseMove={onMouseMove}
+      data-lenis-prevent="true"
     >
       {/* Arkasında hafif, puslu bir doku */}
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mythos-accent/5 via-black to-black opacity-30" />
