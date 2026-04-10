@@ -94,8 +94,6 @@ export function CosmosCanvas() {
   return (
     <div className="w-full h-full relative bg-mythos-bg overflow-hidden flex flex-col">
       <CosmosUI 
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onZoomIn={() => handleZoom(-20)}

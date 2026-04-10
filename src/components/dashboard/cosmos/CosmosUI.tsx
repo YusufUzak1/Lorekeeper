@@ -1,9 +1,6 @@
 import { Search, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 
 interface CosmosUIProps {
-  // Filtreler
-  activeFilter: string;
-  onFilterChange: (type: string) => void;
   // Arama
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -14,8 +11,6 @@ interface CosmosUIProps {
 }
 
 export function CosmosUI({
-  activeFilter,
-  onFilterChange,
   searchQuery,
   onSearchChange,
   onZoomIn,

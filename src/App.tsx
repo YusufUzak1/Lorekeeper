@@ -29,7 +29,7 @@ function LegacyIframeView({ viewName = 'cosmos', label = 'Etkileşimli 3D Kozmos
     <div key={viewName} className="w-full h-full relative">
       <iframe
         src={`/antigravity-dashboard-1.html?view=${viewName}`}
-        title={`Antigravity ${viewName} Mock`}
+        title={label || `Antigravity ${viewName} Mock`}
         className="w-full h-full border-0"
         style={{ pointerEvents: 'auto' }}
       />
