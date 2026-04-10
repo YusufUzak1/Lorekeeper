@@ -1,0 +1,86 @@
+# ============================================================
+# Lorekeeper — Otomatik S3 Deploy Pipeline
+# Her 'main' branch push'unda çalışır
+# ============================================================
+
+name: 🚀 Deploy to AWS S3 + CloudFront
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Manuel tetikleme imkânı
+
+# Aynı anda birden fazla deploy çakışmasını engelle
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # 1. Kodu çek
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Node.js kur
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      # 3. Bağımlılıkları yükle
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      # 4. TypeScript derle + Vite build
+      - name: 🔨 Build project
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # 5. AWS kimlik bilgilerini ayarla
+      - name: 🔑 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'eu-central-1' }}
+
+      # 6. S3'e yükle (dist klasörünü senkronize et)
+      - name: 📤 Sync to S3
+        run: |
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "index.html" \
+            --exclude "*.json"
+
+          # index.html ve JSON dosyalarını kısa cache ile yükle
+          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --include "index.html" \
+            --include "*.json" \
+            --exclude "*" \
+            --content-type "text/html" \
+            --no-guess-mime-type
+
+      # 7. CloudFront önbelleğini temizle
+      - name: 🧹 Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      # 8. Sonucu göster
+      - name: ✅ Deploy complete
+        run: |
+          echo "🎉 Deploy başarılı!"
+          echo "🌐 Site: https://${{ secrets.CLOUDFRONT_DOMAIN }}"
