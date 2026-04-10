@@ -194,3 +194,81 @@ resource "aws_iam_user_policy" "github_deployer" {
     ]
   })
 }
+
+# ============================================================
+# 4. COGNITO — Kullanıcı Kimlik Doğrulama (Kapı Görevlisi)
+# ============================================================
+
+resource "aws_cognito_user_pool" "main" {
+  name = "${var.project_name}-${var.environment}-users"
+
+  # Sadece e-posta ile giriş
+  alias_attributes         = ["email"]
+  auto_verified_attributes = ["email"]
+
+  # Kullanıcıların kendi kaydolmasına izin ver
+  admin_create_user_config {
+    allow_admin_create_user_only = false
+  }
+
+  # Parola ilkeleri
+  password_policy {
+    minimum_length    = 8
+    require_lowercase = true
+    require_uppercase = true
+    require_numbers   = true
+    require_symbols   = false
+  }
+
+  # E-posta doğrulama mesajı
+  verification_message_template {
+    default_email_options {
+      email_message = "Lorekeeper platformuna hoş geldiniz! Doğrulama kodunuz: {####}"
+      email_subject = "Lorekeeper - E-posta Doğrulaması"
+    }
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-user-pool"
+  }
+}
+
+resource "aws_cognito_user_pool_client" "frontend" {
+  name         = "${var.project_name}-${var.environment}-frontend-client"
+  user_pool_id = aws_cognito_user_pool.main.id
+
+  # Client Secret web uygulamaları (SPA) için false olmalıdır
+  generate_secret = false
+
+  # Kimlik doğrulama akışları
+  explicit_auth_flows = [
+    "ALLOW_USER_SRP_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH"
+  ]
+}
+
+# ============================================================
+# 5. DYNAMODB — Veritabanı (Kasa) - Single-Table Design
+# ============================================================
+
+resource "aws_dynamodb_table" "entities" {
+  name         = "${var.project_name}-${var.environment}-entities"
+  billing_mode = "PAY_PER_REQUEST" # İsteğe Bağlı Ödeme (ücretsiz katman dostu)
+
+  hash_key  = "PK"
+  range_key = "SK"
+
+  attribute {
+    name = "PK"
+    type = "S"
+  }
+
+  attribute {
+    name = "SK"
+    type = "S"
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-entities"
+  }
+}

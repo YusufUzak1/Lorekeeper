@@ -28,3 +28,18 @@ output "deployer_secret_access_key" {
   value       = aws_iam_access_key.github_deployer.secret
   sensitive   = true
 }
+
+output "cognito_user_pool_id" {
+  description = "Kullanıcı Havuzu (User Pool) ID'si"
+  value       = aws_cognito_user_pool.main.id
+}
+
+output "cognito_client_id" {
+  description = "Frontend için App Client ID'si"
+  value       = aws_cognito_user_pool_client.frontend.id
+}
+
+output "dynamodb_table_name" {
+  description = "DynamoDB Tablo Adı (Varlıklar ve notlar için)"
+  value       = aws_dynamodb_table.entities.id
+}
