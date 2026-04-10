@@ -66,11 +66,9 @@ jobs:
           # index.html ve JSON dosyalarını kısa cache ile yükle
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} \
             --cache-control "public, max-age=0, must-revalidate" \
-            --include "index.html" \
-            --include "*.json" \
             --exclude "*" \
-            --content-type "text/html" \
-            --no-guess-mime-type
+            --include "index.html" \
+            --include "*.json"
 
       # 7. CloudFront önbelleğini temizle
       - name: 🧹 Invalidate CloudFront cache
