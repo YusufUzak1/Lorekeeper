@@ -7,7 +7,7 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # ── Stage 2: Development (Canlı geliştirme sunucusu) ──
 FROM base AS development
