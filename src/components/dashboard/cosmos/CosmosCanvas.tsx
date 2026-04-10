@@ -15,7 +15,6 @@ export function CosmosCanvas() {
     entities, 
     connections,
     activeFilter,
-    setActiveFilter,
     searchQuery,
     setSearchQuery
   } = useUniverseStore();
