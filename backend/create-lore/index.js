@@ -1,6 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
-import crypto from "crypto";
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -9,55 +8,81 @@ export const handler = async (event) => {
     try {
         const tableName = process.env.TABLE_NAME;
         
-        // API Gateway'den gelen JSON string'i objeye çevir
-        let body = {};
-        if (event.body) {
-            body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+        // Cognito JWT token'dan sub (user id) bilgisini çıkar
+        // API Gateway HTTP API + JWT Authorizer genelde burada tutar:
+        const claims = event.requestContext?.authorizer?.jwt?.claims;
+        const userId = claims?.sub || 'DEFAULT_USER';
+        
+        const method = event.requestContext?.http?.method || event.httpMethod;
+
+        // CORS Headerları
+        const corsHeaders = {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "OPTIONS,POST,GET",
+        };
+
+        if (method === 'OPTIONS') {
+            return { statusCode: 200, headers: corsHeaders, body: '' };
         }
 
-        // Yeni lore (bilgi) için rastgele ID oluştur
-        const loreId = crypto.randomUUID();
-        const timestamp = new Date().toISOString();
-        
-        // Item objesi oluştur (DynamoDB'ye kaydedilecek veri)
-        const item = {
-            // Partition Key (PK) ve Sort Key (SK) - Single Table Design
-            PK: `USER#${body.userId || 'DEFAULT_USER'}`,
-            SK: `LORE#${loreId}`,
+        if (method === 'GET') {
+            // Veritabanından durumu çek
+            const getCommand = new GetCommand({
+                TableName: tableName,
+                Key: {
+                    PK: `USER#${userId}`,
+                    SK: `STATE#CURRENT`
+                }
+            });
+            const { Item } = await docClient.send(getCommand);
             
-            // İstediğimiz diğer tüm attributeları ekleyebiliriz
-            id: loreId,
-            title: body.title || "İsimsiz Lore",
-            description: body.description || "",
-            type: body.type || "universe", // ör: universe, character, timeline
-            createdAt: timestamp,
-            updatedAt: timestamp
-        };
-
-        // Veriyi kaydetme komutu
-        const command = new PutCommand({
-            TableName: tableName,
-            Item: item,
-        });
-
-        await docClient.send(command);
-
-        // Başarılı yanıt (CORS headerlarıyla birlikte)
-        return {
-            statusCode: 201,
-            headers: {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "OPTIONS,POST",
-            },
-            body: JSON.stringify({
-                message: "Lore başarıyla eklendi!",
-                item: item
-            })
-        };
-    } catch (error) {
-        console.error("Lore eklenirken hata oluştu:", error);
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify(Item ? Item.state : null) // null ise henüz state yok demektir
+            };
+        } 
         
+        if (method === 'POST') {
+            // API Gateway'den gelen JSON string'i objeye çevir
+            let body = {};
+            if (event.body) {
+                body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+            }
+
+            const timestamp = new Date().toISOString();
+            
+            // Tüm state'i tek bir kayıt olarak DynamoDB'ye kaydet
+            const item = {
+                PK: `USER#${userId}`,
+                SK: `STATE#CURRENT`,
+                state: body,
+                updatedAt: timestamp
+            };
+
+            const putCommand = new PutCommand({
+                TableName: tableName,
+                Item: item,
+            });
+
+            await docClient.send(putCommand);
+
+            return {
+                statusCode: 200,
+                headers: corsHeaders,
+                body: JSON.stringify({ message: "Store synced successfully!" })
+            };
+        }
+
+        return {
+            statusCode: 405,
+            headers: corsHeaders,
+            body: JSON.stringify({ message: "Method Not Allowed" })
+        };
+        
+    } catch (error) {
+        console.error("Sync error:", error);
         return {
             statusCode: 500,
             headers: {
@@ -65,7 +90,7 @@ export const handler = async (event) => {
                 "Access-Control-Allow-Origin": "*",
             },
             body: JSON.stringify({ 
-                error: "Bir sunucu hatası oluştu.", 
+                error: "Internal Server Error", 
                 details: error.message 
             })
         };

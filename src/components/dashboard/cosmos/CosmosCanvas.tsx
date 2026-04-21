@@ -108,7 +108,7 @@ export function CosmosCanvas() {
         }}
       />
       
-      <div className="flex-1 w-full relative">
+      <div className="flex-1 w-full relative z-0">
         <Canvas camera={{ position: [0, 0, 120], fov: 55, near: 0.1, far: 2000 }}>
           <CosmosBackground />
           <OrbitControls 

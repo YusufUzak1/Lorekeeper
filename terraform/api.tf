@@ -31,9 +31,9 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 }
 
 # 4. Güvenli URL Yolunu Belirle (Authorizer eklendi)
-resource "aws_apigatewayv2_route" "post_lore" {
+resource "aws_apigatewayv2_route" "any_sync" {
   api_id             = aws_apigatewayv2_api.api.id
-  route_key          = "POST /lore"
+  route_key          = "ANY /sync"
   target             = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito.id

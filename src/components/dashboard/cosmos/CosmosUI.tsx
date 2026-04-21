@@ -1,4 +1,6 @@
-import { Search, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { useState } from 'react';
+import { Search, ZoomIn, ZoomOut, Maximize, Link as LinkIcon } from 'lucide-react';
+import { AddConnectionModal } from './../ui/AddConnectionModal';
 
 interface CosmosUIProps {
   // Arama
@@ -17,12 +19,20 @@ export function CosmosUI({
   onZoomOut,
   onResetZoom,
 }: CosmosUIProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     // Pointer-events-none ile canvas tıklamalarını engellemiyoruz
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between">
       
-      {/* ÜST BÖLGE: Arama */}
+      {/* ÜST BÖLGE: Arama ve Butonlar */}
       <div className="p-4 flex flex-col md:flex-row justify-end items-start md:items-center gap-4 pointer-events-auto">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-gradient-to-r from-mythos-accent/20 to-transparent border border-mythos-accent text-[#E8D48B] font-serif text-[0.6rem] tracking-[0.2em] uppercase rounded-sm hover:bg-mythos-accent hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.15)] flex items-center gap-2 cursor-pointer"
+        >
+          <LinkIcon size={12} /> Bağlantı Ekle
+        </button>
         {/* Arama Kutusu */}
         <div className="relative pointer-events-auto">
           <input
@@ -82,6 +92,12 @@ export function CosmosUI({
           </button>
         </div>
       </div>
+
+      {/* MODALS */}
+      <AddConnectionModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
     </div>
   );
 }

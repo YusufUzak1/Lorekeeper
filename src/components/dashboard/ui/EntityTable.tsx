@@ -9,6 +9,7 @@ import { useUniverseStore } from '@/store/useUniverseStore';
 import { useLocation } from 'react-router-dom';
 import type { Entity, EntityType } from '@/types';
 import { Network, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { AddEntityModal } from './AddEntityModal';
 import Fuse from 'fuse.js';
 
 // ── Sıralama Tipleri ──
@@ -29,6 +30,7 @@ export function EntityTable() {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // ── Route'a göre hangi entity tipini göstereceğimiz ──
   const getTypeFromPath = (): EntityType => {
@@ -164,7 +166,10 @@ export function EntityTable() {
               {filteredEntities.length} kayıt
             </span>
           </div>
-          <button className="px-4 py-2 bg-gradient-to-r from-mythos-accent/20 to-transparent border border-mythos-accent text-[#E8D48B] font-serif text-[0.6rem] tracking-[0.2em] uppercase rounded-sm hover:bg-mythos-accent hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.15)] flex items-center gap-2 cursor-pointer">
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="px-4 py-2 bg-gradient-to-r from-mythos-accent/20 to-transparent border border-mythos-accent text-[#E8D48B] font-serif text-[0.6rem] tracking-[0.2em] uppercase rounded-sm hover:bg-mythos-accent hover:text-black transition-all shadow-[0_0_15px_rgba(212,175,55,0.15)] flex items-center gap-2 cursor-pointer"
+          >
             <span className="text-lg leading-none mt-[-2px]">+</span> Yeni Ekle
           </button>
         </div>
@@ -279,6 +284,13 @@ export function EntityTable() {
         </div>
 
       </div>
+      
+      {/* ── Add Entity Modal ── */}
+      <AddEntityModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        defaultType={currentType}
+      />
     </div>
   );
 }

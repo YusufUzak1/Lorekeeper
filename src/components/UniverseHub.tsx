@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useUniverseStore, SEED_UNIVERSE_ID } from '@/store/useUniverseStore';
+import { fetchStateFromCloud, syncStateToCloud } from '@/services/syncService';
+import { Loader2, CloudDownload, CloudUpload } from 'lucide-react';
 import { Sparkles, BookOpen, Plus } from 'lucide-react';
 
 type UniverseHubProps = {
@@ -9,7 +11,8 @@ type UniverseHubProps = {
 };
 
 export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubProps) {
-  const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse, deleteUniverse } = useUniverseStore();
+  const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse, deleteUniverse, replaceState } = useUniverseStore();
+  const [loadingMsg, setLoadingMsg] = useState('');
   const [name, setName] = useState('');
   const [summary, setSummary] = useState('');
   const [tone, setTone] = useState('epik');
@@ -71,9 +74,71 @@ export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubPr
     }
   };
 
+  const handleFetchFromCloud = async () => {
+    try {
+      setLoadingMsg('Buluttan verileriniz indiriliyor...');
+      const cloudState = await fetchStateFromCloud();
+      if (cloudState) {
+        replaceState(cloudState);
+        alert('Verileriniz başarıyla buluttan indirildi!');
+      } else {
+        alert('Bulutta kayıtlı bir veriniz bulunamadı.');
+      }
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setLoadingMsg('');
+    }
+  };
+
+  const handleSyncToCloud = async () => {
+    try {
+      setLoadingMsg('Verileriniz buluta yedekleniyor...');
+      const fullState = useUniverseStore.getState();
+      await syncStateToCloud(fullState);
+      alert('Tüm verileriniz başarıyla buluta yedeklendi!');
+    } catch (err) {
+      alert((err as Error).message);
+    } finally {
+      setLoadingMsg('');
+    }
+  };
+
   return (
     <section className="relative w-full min-h-screen flex items-center justify-center px-6 py-12">
       <div className="max-w-6xl w-full flex flex-col gap-8">
+      
+        {/* Cloud Sync Panel */}
+        <div className="glass-panel rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4 border border-mythos-accent/20">
+          <div>
+            <h3 className="text-sm font-serif text-white/90 tracking-widest uppercase">Bulut Senkronizasyonu</h3>
+            <p className="text-[10px] text-white/40 uppercase tracking-widest mt-1">Verilerinizi cihazlar arası eşitleyin</p>
+          </div>
+          <div className="flex gap-2 w-full md:w-auto">
+            <button
+              onClick={handleFetchFromCloud}
+              disabled={!!loadingMsg}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-white/5 border border-white/10 px-4 py-2 text-xs uppercase tracking-wider text-white/70 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <CloudDownload size={14} />
+              Buluttan İndir
+            </button>
+            <button
+              onClick={handleSyncToCloud}
+              disabled={!!loadingMsg}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 rounded-lg bg-mythos-accent/10 border border-mythos-accent/30 px-4 py-2 text-xs uppercase tracking-wider text-mythos-accent hover:bg-mythos-accent/20 hover:text-mythos-accent/90 transition-colors disabled:opacity-50"
+            >
+              <CloudUpload size={14} />
+              Buluta Yedekle
+            </button>
+          </div>
+        </div>
+        
+        {loadingMsg && (
+          <div className="flex items-center justify-center gap-2 text-mythos-accent text-xs uppercase tracking-widest animate-pulse">
+            <Loader2 size={14} className="animate-spin" /> {loadingMsg}
+          </div>
+        )}
 
         {/* Mevcut Evrenler Listesi */}
         {universes.length > 0 && (

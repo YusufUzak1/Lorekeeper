@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { confirmSignUp, resendSignUpCode, signIn, signUp } from 'aws-amplify/auth';
@@ -17,7 +17,13 @@ function buildUsernameFromEmail(email: string): string {
 export function AuthPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { login } = useAuthStore();
+  const { login, isAuthenticated } = useAuthStore();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/hub', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const requestedMode = searchParams.get('mode');
   const initialMode: Mode = requestedMode === 'signup' ? 'signup' : 'login';
@@ -87,7 +93,13 @@ export function AuthPage() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Kayit olusturulamadi.';
-      setError(msg);
+      
+      if (msg.toLowerCase().includes('already exists') || msg.includes('AliasExistsException')) {
+        setError('Bu e-posta adresi zaten kullaniliyor. Lutfen giris yapin.');
+        switchMode('login');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

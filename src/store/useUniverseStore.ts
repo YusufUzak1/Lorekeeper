@@ -64,6 +64,7 @@ interface UniverseState {
   setActiveFilter: (f: EntityFilterType) => void;
 
   // ── Evren aksiyonları ──
+  replaceState: (newState: Partial<UniverseState>) => void;
   setCurrentUniverseId: (id: string | null) => void;
   addUniverse: (data: Omit<Universe, 'id' | 'createdAt'>) => Universe;
   deleteUniverse: (id: string) => void;
@@ -142,6 +143,7 @@ export const useUniverseStore = create<UniverseState>()(
       setActiveFilter: (f) => set({ activeFilter: f }),
 
       // ─── Evren ─────────────────────────────
+      replaceState: (newState) => set((s) => ({ ...s, ...newState })),
       setCurrentUniverseId: (id) => set({ currentUniverseId: id }),
 
       addUniverse: (data) => {
@@ -195,14 +197,33 @@ export const useUniverseStore = create<UniverseState>()(
       // ─── Connection ────────────────────────
       addConnection: (sourceId, targetId, relation) => {
         const newConn: Connection = { id: uid(), sourceId, targetId, relation };
-        set((s) => ({ connections: [...s.connections, newConn] }));
+        set((s) => ({ 
+          connections: [...s.connections, newConn],
+          entities: s.entities.map(e => {
+            if (e.id === sourceId || e.id === targetId) {
+              return { ...e, linkCount: (e.linkCount || 0) + 1 };
+            }
+            return e;
+          })
+        }));
         return newConn;
       },
 
       deleteConnection: (id) =>
-        set((s) => ({
-          connections: s.connections.filter((c) => c.id !== id),
-        })),
+        set((s) => {
+          const conn = s.connections.find(c => c.id === id);
+          if (!conn) return s;
+          
+          return {
+            connections: s.connections.filter((c) => c.id !== id),
+            entities: s.entities.map(e => {
+              if (e.id === conn.sourceId || e.id === conn.targetId) {
+                return { ...e, linkCount: Math.max(0, (e.linkCount || 0) - 1) };
+              }
+              return e;
+            })
+          };
+        }),
 
       getConnectionsForEntity: (entityId) => {
         const { connections } = get();
