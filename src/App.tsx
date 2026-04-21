@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { getCurrentUser, signOut } from 'aws-amplify/auth';
 
 import { HeroSection } from './components/HeroSection';
@@ -11,7 +11,7 @@ import { CosmosCanvas } from './components/dashboard/cosmos/CosmosCanvas';
 import { MythologyView } from './components/dashboard/mythology/MythologyView';
 import { AuthPage } from './components/AuthPage';
 import { useAuthStore } from './store/useAuthStore';
-import { createLore } from './services/loreService';
+
 
 // Animasyonlu sayfa geçiş sarmalayıcısı
 function PageWrapper({ children }: { children: React.ReactNode }) {
@@ -57,9 +57,6 @@ function App() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, login, logout } = useAuthStore();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [isSavingLore, setIsSavingLore] = useState(false);
 
   useEffect(() => {
     const syncAuthSession = async () => {
@@ -81,21 +78,6 @@ function App() {
     } finally {
       logout();
       navigate('/', { replace: true });
-    }
-  };
-
-  const handleLoreSubmit = async () => {
-    try {
-      setIsSavingLore(true);
-      await createLore(title, content);
-      alert('Basariyla kaydedildi!');
-      setTitle('');
-      setContent('');
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Lore kaydi basarisiz oldu.';
-      alert(message);
-    } finally {
-      setIsSavingLore(false);
     }
   };
 
@@ -130,44 +112,10 @@ function App() {
           <Route path="/hub" element={
             isAuthenticated ? (
               <PageWrapper>
-                <section className="w-full min-h-screen">
-                  <div className="max-w-6xl mx-auto px-6 pt-6">
-                    <div className="glass-panel rounded-2xl p-5 mb-4">
-                      <h3 className="text-sm md:text-base text-white/85 tracking-[0.2em] uppercase mb-3">
-                        Lore Ekle
-                      </h3>
-                      <div className="grid gap-3">
-                        <input
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="Lore basligi"
-                          className="w-full rounded-md bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-mythos-accent/70 focus:ring-1 focus:ring-mythos-accent/70"
-                        />
-                        <textarea
-                          value={content}
-                          onChange={(e) => setContent(e.target.value)}
-                          placeholder="Lore icerigi"
-                          rows={4}
-                          className="w-full rounded-md bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-mythos-accent/70 focus:ring-1 focus:ring-mythos-accent/70 resize-none"
-                        />
-                        <div>
-                          <button
-                            type="button"
-                            onClick={() => void handleLoreSubmit()}
-                            disabled={isSavingLore || !title.trim() || !content.trim()}
-                            className="rounded-md bg-mythos-accent/85 px-4 py-2 text-xs uppercase tracking-[0.2em] text-black font-semibold hover:bg-mythos-accent transition-colors disabled:opacity-60"
-                          >
-                            {isSavingLore ? 'Kaydediliyor...' : 'Kaydet'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <UniverseHub
-                    onEnterExisting={() => navigate('/dashboard')}
-                    onCreateUniverse={() => navigate('/dashboard')}
-                  />
-                </section>
+                <UniverseHub
+                  onEnterExisting={() => navigate('/dashboard')}
+                  onCreateUniverse={() => navigate('/dashboard')}
+                />
               </PageWrapper>
             ) : (
               <Navigate to="/auth?mode=login" replace />
@@ -210,3 +158,4 @@ function App() {
 }
 
 export default App
+

@@ -1,74 +1,73 @@
-'use strict';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import crypto from "crypto";
 
-const AWS = require('aws-sdk');
-const crypto = require('crypto');
+const client = new DynamoDBClient({});
+const docClient = DynamoDBDocumentClient.from(client);
 
-const dynamodb = new AWS.DynamoDB.DocumentClient();
-const tableName = process.env.TABLE_NAME;
+export const handler = async (event) => {
+    try {
+        const tableName = process.env.TABLE_NAME;
+        
+        // API Gateway'den gelen JSON string'i objeye çevir
+        let body = {};
+        if (event.body) {
+            body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+        }
 
-function response(statusCode, body) {
-  return {
-    statusCode,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type,Authorization',
-      'Access-Control-Allow-Methods': 'OPTIONS,POST',
-    },
-    body: JSON.stringify(body),
-  };
-}
+        // Yeni lore (bilgi) için rastgele ID oluştur
+        const loreId = crypto.randomUUID();
+        const timestamp = new Date().toISOString();
+        
+        // Item objesi oluştur (DynamoDB'ye kaydedilecek veri)
+        const item = {
+            // Partition Key (PK) ve Sort Key (SK) - Single Table Design
+            PK: `USER#${body.userId || 'DEFAULT_USER'}`,
+            SK: `LORE#${loreId}`,
+            
+            // İstediğimiz diğer tüm attributeları ekleyebiliriz
+            id: loreId,
+            title: body.title || "İsimsiz Lore",
+            description: body.description || "",
+            type: body.type || "universe", // ör: universe, character, timeline
+            createdAt: timestamp,
+            updatedAt: timestamp
+        };
 
-exports.handler = async (event) => {
-  try {
-    if (!tableName) {
-      return response(500, { error: 'TABLE_NAME environment variable is missing.' });
+        // Veriyi kaydetme komutu
+        const command = new PutCommand({
+            TableName: tableName,
+            Item: item,
+        });
+
+        await docClient.send(command);
+
+        // Başarılı yanıt (CORS headerlarıyla birlikte)
+        return {
+            statusCode: 201,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "OPTIONS,POST",
+            },
+            body: JSON.stringify({
+                message: "Lore başarıyla eklendi!",
+                item: item
+            })
+        };
+    } catch (error) {
+        console.error("Lore eklenirken hata oluştu:", error);
+        
+        return {
+            statusCode: 500,
+            headers: {
+                "Content-Type": "application/json",
+                "Access-Control-Allow-Origin": "*",
+            },
+            body: JSON.stringify({ 
+                error: "Bir sunucu hatası oluştu.", 
+                details: error.message 
+            })
+        };
     }
-
-    if (event.httpMethod === 'OPTIONS') {
-      return response(200, { ok: true });
-    }
-
-    const payload = typeof event.body === 'string' ? JSON.parse(event.body || '{}') : event.body || {};
-    const title = (payload.title || '').trim();
-    const content = (payload.content || '').trim();
-    const type = (payload.type || 'lore').trim().toLowerCase();
-
-    if (!title) {
-      return response(400, { error: 'title is required.' });
-    }
-
-    const now = new Date().toISOString();
-    const id = `lore_${crypto.randomUUID()}`;
-    const owner = event.requestContext?.authorizer?.jwt?.claims?.sub || 'anonymous';
-
-    const item = {
-      PK: `USER#${owner}`,
-      SK: `LORE#${id}`,
-      entityId: id,
-      entityType: type,
-      title,
-      content,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await dynamodb
-      .put({
-        TableName: tableName,
-        Item: item,
-      })
-      .promise();
-
-    return response(201, {
-      message: 'Lore created.',
-      item,
-    });
-  } catch (error) {
-    console.error('create-lore error:', error);
-    return response(500, {
-      error: 'Internal server error.',
-      details: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
 };

@@ -35,6 +35,9 @@ import {
   SEED_LANGUAGES,
 } from '@/data/seed';
 
+// ── Sabit Seed Universe ID (Yüzüklerin Efendisi demo evreni) ──
+export const SEED_UNIVERSE_ID = 'seed-lotr-universe';
+
 // ── ID üretici ──
 function uid(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -100,18 +103,26 @@ interface UniverseState {
 
   // ── Yardımcı ──
   resetToSeed: () => void;
+  loadSeedForUniverse: (universeId: string) => void;
+
+  // ── Universe-scoped Getters ──
+  getMythsForCurrentUniverse: () => MythCard[];
+  getEntitiesForCurrentUniverse: () => Entity[];
+  getTimelineForCurrentUniverse: () => TimelineEvent[];
+  getRegionsForCurrentUniverse: () => MapRegion[];
+  getLanguagesForCurrentUniverse: () => Language[];
 }
 
 // ── Varsayılan state ──
 const DEFAULT_STATE = {
   currentUniverseId: null as string | null,
   universes: [] as Universe[],
-  entities: SEED_ENTITIES,
-  connections: SEED_CONNECTIONS,
-  myths: SEED_MYTHS,
-  timeline: SEED_TIMELINE,
-  regions: SEED_REGIONS,
-  languages: SEED_LANGUAGES,
+  entities: [] as Entity[],
+  connections: [] as Connection[],
+  myths: [] as MythCard[],
+  timeline: [] as TimelineEvent[],
+  regions: [] as MapRegion[],
+  languages: [] as Language[],
   searchQuery: '',
   activeFilter: 'all' as EntityFilterType,
 };
@@ -151,7 +162,8 @@ export const useUniverseStore = create<UniverseState>()(
 
       // ─── Entity ────────────────────────────
       addEntity: (data) => {
-        const newEntity: Entity = { id: uid(), linkCount: 0, ...data };
+        const universeId = get().currentUniverseId || undefined;
+        const newEntity: Entity = { id: uid(), linkCount: 0, universeId, ...data };
         set((s) => ({ entities: [...s.entities, newEntity] }));
         return newEntity;
       },
@@ -170,9 +182,15 @@ export const useUniverseStore = create<UniverseState>()(
           ),
         })),
 
-      getEntitiesByType: (type) => get().entities.filter((e) => e.type === type),
+      getEntitiesByType: (type) => {
+        const { entities, currentUniverseId } = get();
+        return entities.filter((e) => e.type === type && e.universeId === currentUniverseId);
+      },
 
-      getEntityById: (id) => get().entities.find((e) => e.id === id),
+      getEntityById: (id) => {
+        const { entities, currentUniverseId } = get();
+        return entities.find((e) => e.id === id && e.universeId === currentUniverseId);
+      },
 
       // ─── Connection ────────────────────────
       addConnection: (sourceId, targetId, relation) => {
@@ -186,14 +204,21 @@ export const useUniverseStore = create<UniverseState>()(
           connections: s.connections.filter((c) => c.id !== id),
         })),
 
-      getConnectionsForEntity: (entityId) =>
-        get().connections.filter(
+      getConnectionsForEntity: (entityId) => {
+        const { connections } = get();
+        // Varsayalım bağlantıların da universeId'si olabilir, yoksa sadece source/target entity'nin evrenini varsayarız
+        // Fakat bağlantılar genelde entity'lere aittir. Güvende kalabilmek için store'daki currentUniverseId'yi dikkate almak en iyisi olur
+        // Not: connection tipinde universeId alanı var mıydı? yoktu. Ancak bağlantının kime ait olduğunu biliyorsak sorun yok. 
+        // Şimdilik sadece entity ID filtrelemesi yeterli. 
+        return connections.filter(
           (c) => c.sourceId === entityId || c.targetId === entityId
-        ),
+        );
+      },
 
       // ─── Myth ──────────────────────────────
       addMyth: (data) => {
-        const newMyth: MythCard = { id: uid(), ...data };
+        const universeId = get().currentUniverseId || undefined;
+        const newMyth: MythCard = { id: uid(), universeId, ...data };
         set((s) => ({ myths: [...s.myths, newMyth] }));
         return newMyth;
       },
@@ -208,7 +233,8 @@ export const useUniverseStore = create<UniverseState>()(
 
       // ─── Timeline ─────────────────────────
       addTimelineEvent: (data) => {
-        const newEvent: TimelineEvent = { id: uid(), ...data };
+        const universeId = get().currentUniverseId || undefined;
+        const newEvent: TimelineEvent = { id: uid(), universeId, ...data };
         set((s) => ({ timeline: [...s.timeline, newEvent] }));
         return newEvent;
       },
@@ -223,11 +249,15 @@ export const useUniverseStore = create<UniverseState>()(
           timeline: s.timeline.filter((t) => t.id !== id),
         })),
 
-      getTimelineByEra: (era) => get().timeline.filter((t) => t.era === era),
+      getTimelineByEra: (era) => {
+        const { timeline, currentUniverseId } = get();
+        return timeline.filter((t) => t.era === era && t.universeId === currentUniverseId);
+      },
 
       // ─── Region ────────────────────────────
       addRegion: (data) => {
-        const newRegion: MapRegion = { id: uid(), ...data };
+        const universeId = get().currentUniverseId || undefined;
+        const newRegion: MapRegion = { id: uid(), universeId, ...data };
         set((s) => ({ regions: [...s.regions, newRegion] }));
         return newRegion;
       },
@@ -244,7 +274,8 @@ export const useUniverseStore = create<UniverseState>()(
 
       // ─── Language ──────────────────────────
       addLanguage: (data) => {
-        const newLang: Language = { id: uid(), ...data };
+        const universeId = get().currentUniverseId || undefined;
+        const newLang: Language = { id: uid(), universeId, ...data };
         set((s) => ({ languages: [...s.languages, newLang] }));
         return newLang;
       },
@@ -261,10 +292,56 @@ export const useUniverseStore = create<UniverseState>()(
 
       // ─── Yardımcı ─────────────────────────
       resetToSeed: () => set(DEFAULT_STATE),
+
+      loadSeedForUniverse: (universeId: string) => {
+        // Önce bu evren için mevcut seed verilerini temizle (çift yükleme önleme)
+        const s = get();
+        const alreadyHasData = s.myths.some((m) => m.universeId === universeId);
+        if (alreadyHasData) return; // Zaten yüklü, tekrar ekleme
+
+        const tagWithUniverse = <T extends { id: string }>(items: T[]): (T & { universeId: string })[] =>
+          items.map((item) => ({ ...item, universeId }));
+
+        set((state) => ({
+          entities: [...state.entities, ...tagWithUniverse(SEED_ENTITIES)],
+          connections: [...state.connections, ...SEED_CONNECTIONS],
+          myths: [...state.myths, ...tagWithUniverse(SEED_MYTHS)],
+          timeline: [...state.timeline, ...tagWithUniverse(SEED_TIMELINE)],
+          regions: [...state.regions, ...tagWithUniverse(SEED_REGIONS)],
+          languages: [...state.languages, ...tagWithUniverse(SEED_LANGUAGES)],
+        }));
+      },
+
+      // ─── Universe-scoped Getters ─────────
+      getMythsForCurrentUniverse: () => {
+        const { myths, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return myths.filter((m) => m.universeId === currentUniverseId);
+      },
+      getEntitiesForCurrentUniverse: () => {
+        const { entities, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return entities.filter((e) => e.universeId === currentUniverseId);
+      },
+      getTimelineForCurrentUniverse: () => {
+        const { timeline, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return timeline.filter((t) => t.universeId === currentUniverseId);
+      },
+      getRegionsForCurrentUniverse: () => {
+        const { regions, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return regions.filter((r) => r.universeId === currentUniverseId);
+      },
+      getLanguagesForCurrentUniverse: () => {
+        const { languages, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return languages.filter((l) => l.universeId === currentUniverseId);
+      },
     }),
     {
       name: 'mythos-universe-store',
-      version: 1,
+      version: 3, // Force fresh state to remove old dangling data completely
     }
   )
 );

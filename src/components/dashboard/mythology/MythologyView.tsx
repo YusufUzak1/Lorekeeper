@@ -2,10 +2,14 @@ import { useUniverseStore } from '@/store/useUniverseStore';
 import { motion } from 'framer-motion';
 import { useRef, useState, useMemo } from 'react';
 import type { MythCard } from '@/types';
+import { AddMythModal } from './AddMythModal';
+import { Plus, Sparkles } from 'lucide-react';
 
 export function MythologyView() {
-  const { myths } = useUniverseStore();
+  const { getMythsForCurrentUniverse } = useUniverseStore();
+  const myths = getMythsForCurrentUniverse();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Orta mouse tuşuyla kaydırma (Middle Click Drag-to-Scroll)
   const [isMiddleDragging, setIsMiddleDragging] = useState(false);
@@ -58,7 +62,7 @@ export function MythologyView() {
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-mythos-accent/5 via-black to-black opacity-30" />
 
       <div className="p-8 md:p-12 relative z-10">
-        {/* Başlık ve O Meşhur Alıntı (Artık işlevsel ve güzel bir tasarımla) */}
+        {/* Başlık ve Alıntı */}
         <div className="mb-14 text-center max-w-2xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: -20 }}
@@ -75,6 +79,23 @@ export function MythologyView() {
           >
             "Gölgeler dans eder; ışık, onların hikayesini yazar."
           </motion.p>
+
+          {/* Yeni Efsane Ekle Butonu (her zaman görünür) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-6"
+          >
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(true)}
+              className="group inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-mythos-accent/30 bg-mythos-accent/5 text-[#E8D48B] text-[0.65rem] uppercase tracking-[0.25em] font-serif hover:bg-mythos-accent/15 hover:border-mythos-accent/50 transition-all duration-500 cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.05)] hover:shadow-[0_0_30px_rgba(212,175,55,0.15)]"
+            >
+              <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" />
+              Yeni Efsane Ekle
+            </button>
+          </motion.div>
         </div>
 
         {/* Mitoloji Kategorileri */}
@@ -159,16 +180,43 @@ export function MythologyView() {
             </div>
           ))}
 
-          {/* Hiç veri yoksa gösterilecek ekran */}
+          {/* Hiç veri yoksa gösterilecek premium boş ekran */}
           {myths.length === 0 && (
-            <div className="col-span-full border border-dashed border-white/10 rounded-xl p-16 text-center bg-white/[0.01]">
-              <p className="font-serif italic text-gray-200/30 text-lg">
-                Bu evrenin kökleri sessiz. Henüz hiçbir efsane fısıldanmadı.
-              </p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="col-span-full border border-dashed border-white/10 rounded-2xl p-16 text-center bg-white/[0.01] relative overflow-hidden"
+            >
+              {/* Ambient glow */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-mythos-accent/5 rounded-full blur-[80px] pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col items-center gap-5">
+                <div className="w-16 h-16 rounded-full bg-mythos-accent/5 border border-mythos-accent/20 flex items-center justify-center">
+                  <Sparkles size={24} className="text-mythos-accent/50" />
+                </div>
+                <p className="font-serif italic text-gray-200/30 text-lg max-w-md">
+                  Bu evrenin kökleri sessiz. Henüz hiçbir efsane fısıldanmadı.
+                </p>
+                <p className="text-[0.7rem] text-white/20 max-w-sm">
+                  Yukarıdaki "Yeni Efsane Ekle" butonuna tıklayarak Panteon'unuzu doldurmaya başlayın.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(true)}
+                  className="mt-3 group inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-mythos-accent/40 bg-mythos-accent/10 text-[#E8D48B] text-[0.6rem] uppercase tracking-[0.25em] font-serif hover:bg-mythos-accent/20 transition-all cursor-pointer"
+                >
+                  <Plus size={14} className="group-hover:rotate-90 transition-transform duration-300" />
+                  İlk Efsaneni Yarat
+                </button>
+              </div>
+            </motion.div>
           )}
         </div>
       </div>
+
+      {/* Add Myth Modal */}
+      <AddMythModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

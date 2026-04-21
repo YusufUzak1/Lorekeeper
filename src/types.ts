@@ -18,6 +18,7 @@ export interface Connection {
 
 export interface Entity {
   id: string;
+  universeId?: string;
   name: string;
   type: EntityType;
   era: string;
@@ -30,6 +31,7 @@ export interface Entity {
 // ── Mitoloji ──
 export interface MythCard {
   id: string;
+  universeId?: string;
   tier: string;
   glyph: string;
   name: string;
@@ -42,6 +44,7 @@ export interface MythCard {
 // ── Zaman Çizelgesi ──
 export interface TimelineEvent {
   id: string;
+  universeId?: string;
   era: string;
   year: string;
   name: string;
@@ -54,6 +57,7 @@ export interface TimelineEvent {
 // ── Harita Bölgesi ──
 export interface MapRegion {
   id: string;
+  universeId?: string;
   name: string;
   type: string;
   color: string;
@@ -81,6 +85,7 @@ export interface LanguagePhonetic {
 
 export interface Language {
   id: string;
+  universeId?: string;
   name: string;
   glyphs: LanguageGlyph[];
   phrases: LanguagePhrase[];
