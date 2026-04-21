@@ -9,6 +9,9 @@ import DashboardLayout from './components/dashboard/DashboardLayout';
 import { EntityTable } from './components/dashboard/ui/EntityTable';
 import { CosmosCanvas } from './components/dashboard/cosmos/CosmosCanvas';
 import { MythologyView } from './components/dashboard/mythology/MythologyView';
+import { TimelineView } from './components/dashboard/timeline/TimelineView';
+import { MapsView } from './components/dashboard/maps/MapsView';
+import { LanguagesView } from './components/dashboard/languages/LanguagesView';
 import { AuthPage } from './components/AuthPage';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -140,9 +143,9 @@ function App() {
             
             {/* Geçiçi Legacy Yönlendirmeleri (ve yenilenenler) */}
             <Route path="mythology" element={<MythologyView />} />
-            <Route path="timeline" element={<LegacyIframeView viewName="timeline" label="Zaman Çizelgesi (Legacy)" />} />
-            <Route path="maps" element={<LegacyIframeView viewName="map" label="Haritalar Modülü (Legacy)" />} />
-            <Route path="languages" element={<LegacyIframeView viewName="lang" label="Diller ve Alfabeler (Legacy)" />} />
+            <Route path="timeline" element={<TimelineView />} />
+            <Route path="maps" element={<MapsView />} />
+            <Route path="languages" element={<LanguagesView />} />
             <Route path="settings" element={<LegacyIframeView viewName="settings" label="Sistem Ayarları (Legacy)" />} />
             
             {/* Logout -> Hero */}
