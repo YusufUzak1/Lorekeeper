@@ -11,7 +11,7 @@ type UniverseHubProps = {
 };
 
 export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubProps) {
-  const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse, deleteUniverse, replaceState } = useUniverseStore();
+  const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse, deleteUniverse, replaceState, purgeAllData } = useUniverseStore();
   const [loadingMsg, setLoadingMsg] = useState('');
   const [name, setName] = useState('');
   const [summary, setSummary] = useState('');
@@ -279,6 +279,17 @@ export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubPr
               )}
             </div>
           </form>
+        </div>
+
+        {/* Global Purge Button */}
+        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
+          <p className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-serif">Sistem Bakımı</p>
+          <button
+            onClick={purgeAllData}
+            className="px-6 py-2 rounded-md border border-red-500/10 text-red-500/30 hover:text-red-500 hover:border-red-500/40 transition-all font-serif text-[0.6rem] uppercase tracking-[0.2em] cursor-pointer"
+          >
+            Tüm Verileri Temizle ve Sıfırla
+          </button>
         </div>
       </div>
     </section>

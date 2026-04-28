@@ -11,6 +11,7 @@ export type RelationType = 'friend' | 'enemy' | 'neutral';
 
 export interface Connection {
   id: string;
+  universeId?: string;
   sourceId: string;
   targetId: string;
   relation: RelationType;

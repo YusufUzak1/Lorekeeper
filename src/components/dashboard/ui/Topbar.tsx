@@ -14,7 +14,19 @@ const FILTER_OPTIONS: { value: EntityFilterType; label: string }[] = [
 const ENTITY_ROUTES = ['/dashboard', '/dashboard/characters', '/dashboard/places', '/dashboard/events'];
 
 export function Topbar() {
-  const { entities, connections, activeFilter, setActiveFilter } = useUniverseStore();
+  const { 
+    getEntitiesForCurrentUniverse, 
+    getConnectionsForCurrentUniverse, 
+    activeFilter, 
+    setActiveFilter,
+    universes,
+    currentUniverseId,
+    clearCurrentUniverse
+  } = useUniverseStore();
+
+  const currentUniverse = universes.find(u => u.id === currentUniverseId);
+  const entities = getEntitiesForCurrentUniverse();
+  const connections = getConnectionsForCurrentUniverse();
   const location = useLocation();
 
   const showFilters = ENTITY_ROUTES.includes(location.pathname);
@@ -59,8 +71,15 @@ export function Topbar() {
     <div className="h-14 flex items-center shrink-0 px-4 border-b border-glass-border bg-[#0a0a0b]/85 gap-3">
       {/* Page Title & Subtitle */}
       <div className="flex flex-col">
-        <div className="font-serif text-[0.7rem] tracking-[0.2em] text-[#E8D48B] uppercase drop-shadow-[0_0_16px_rgba(212,175,55,0.3)]">
-          {info.title}
+        <div className="flex items-center gap-2">
+          <div className="font-serif text-[0.7rem] tracking-[0.2em] text-[#E8D48B] uppercase drop-shadow-[0_0_16px_rgba(212,175,55,0.3)]">
+            {info.title}
+          </div>
+          {currentUniverse && (
+            <span className="text-[0.5rem] px-2 py-0.5 bg-mythos-accent/10 border border-mythos-accent/20 text-mythos-accent rounded-sm uppercase tracking-widest font-serif">
+              {currentUniverse.name}
+            </span>
+          )}
         </div>
         <div className="font-serif text-[0.8rem] text-gray-200/30 italic">
           {info.subtitle}
@@ -104,6 +123,15 @@ export function Topbar() {
         <kbd className="px-1.5 py-0.5 text-[0.5rem] bg-white/5 border border-white/8 rounded text-gray-200/25 font-sans ml-3">
           ⌘K
         </kbd>
+      </button>
+
+      {/* Clear Universe Button */}
+      <button
+        onClick={clearCurrentUniverse}
+        title="Mevcut Evreni Sıfırla"
+        className="px-3 py-1.5 rounded-md border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 text-red-400/50 hover:text-red-400 transition-all cursor-pointer font-serif text-[0.55rem] uppercase tracking-wider"
+      >
+        Evreni Sıfırla
       </button>
 
       {/* Stats Counter A */}

@@ -43,7 +43,18 @@ export function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const { entities, myths, timeline, regions } = useUniverseStore();
+  const { 
+    getEntitiesForCurrentUniverse, 
+    getMythsForCurrentUniverse, 
+    getTimelineForCurrentUniverse, 
+    getRegionsForCurrentUniverse,
+    currentUniverseId 
+  } = useUniverseStore();
+
+  const entities = getEntitiesForCurrentUniverse();
+  const myths = getMythsForCurrentUniverse();
+  const timeline = getTimelineForCurrentUniverse();
+  const regions = getRegionsForCurrentUniverse();
 
   // ── Tüm veriyi tek listeye dönüştür ──
   const allItems = useMemo<SearchItem[]>(() => {
@@ -105,7 +116,7 @@ export function CommandPalette() {
     });
 
     return items;
-  }, [entities, myths, timeline, regions]);
+  }, [entities, myths, timeline, regions, currentUniverseId]);
 
   // ── Fuse.js index ──
   const fuse = useMemo(

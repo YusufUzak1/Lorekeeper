@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 
 export function Sidebar() {
-  const { entities } = useUniverseStore();
+  const { getEntitiesForCurrentUniverse } = useUniverseStore();
+  const entities = getEntitiesForCurrentUniverse();
   const [isCollapsed, setIsCollapsed] = useState(false);
   
   const charCount = entities.filter(e => e.type === 'character').length;

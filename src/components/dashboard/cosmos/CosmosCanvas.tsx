@@ -12,12 +12,17 @@ import { CosmosUI } from './CosmosUI';
 
 export function CosmosCanvas() {
   const { 
-    entities, 
-    connections,
+    getEntitiesForCurrentUniverse, 
+    getConnectionsForCurrentUniverse,
+    entities: allEntities,
+    connections: allConnections,
     activeFilter,
     searchQuery,
     setSearchQuery
   } = useUniverseStore();
+
+  const entities = getEntitiesForCurrentUniverse();
+  const connections = getConnectionsForCurrentUniverse();
   
   // Interaction State
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);

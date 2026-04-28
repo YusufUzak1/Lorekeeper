@@ -17,7 +17,8 @@ interface AddConnectionModalProps {
 }
 
 export function AddConnectionModal({ isOpen, onClose, defaultSourceId }: AddConnectionModalProps) {
-  const { entities, addConnection } = useUniverseStore();
+  const { getEntitiesForCurrentUniverse, addConnection } = useUniverseStore();
+  const entities = getEntitiesForCurrentUniverse();
 
   const [sourceId, setSourceId] = useState(defaultSourceId || '');
   const [targetId, setTargetId] = useState('');

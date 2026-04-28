@@ -20,7 +20,7 @@ type SortDir = 'asc' | 'desc';
 type StatusFilter = 'all' | 'active' | 'dead';
 
 export function EntityTable() {
-  const { getEntitiesByType, activeFilter } = useUniverseStore();
+  const { getEntitiesByType, activeFilter, entities, currentUniverseId } = useUniverseStore();
   const location = useLocation();
 
   const tableScrollRef = useRef<HTMLDivElement | null>(null);
@@ -48,7 +48,7 @@ export function EntityTable() {
       return getEntitiesByType(activeFilter);
     }
     return getEntitiesByType(currentType);
-  }, [activeFilter, currentType, getEntitiesByType]);
+  }, [activeFilter, currentType, getEntitiesByType, entities, currentUniverseId]);
 
   // ── Fuse.js index (inline arama) ──
   const fuse = useMemo(

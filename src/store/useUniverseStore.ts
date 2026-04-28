@@ -68,6 +68,8 @@ interface UniverseState {
   setCurrentUniverseId: (id: string | null) => void;
   addUniverse: (data: Omit<Universe, 'id' | 'createdAt'>) => Universe;
   deleteUniverse: (id: string) => void;
+  clearCurrentUniverse: () => void;
+  purgeAllData: () => void;
 
   // ── Entity CRUD ──
   addEntity: (data: Omit<Entity, 'id' | 'linkCount'>) => Entity;
@@ -80,6 +82,7 @@ interface UniverseState {
   addConnection: (sourceId: string, targetId: string, relation: RelationType) => Connection;
   deleteConnection: (id: string) => void;
   getConnectionsForEntity: (entityId: string) => Connection[];
+  getConnectionsForCurrentUniverse: () => Connection[];
 
   // ── Myth CRUD ──
   addMyth: (data: Omit<MythCard, 'id'>) => MythCard;
@@ -160,12 +163,45 @@ export const useUniverseStore = create<UniverseState>()(
         set((s) => ({
           universes: s.universes.filter((u) => u.id !== id),
           currentUniverseId: s.currentUniverseId === id ? null : s.currentUniverseId,
+          // Silinen evrene ait tüm verileri de temizle
+          entities: s.entities.filter((e) => e.universeId !== id),
+          connections: s.connections.filter((c) => c.universeId !== id),
+          myths: s.myths.filter((m) => m.universeId !== id),
+          timeline: s.timeline.filter((t) => t.universeId !== id),
+          regions: s.regions.filter((r) => r.universeId !== id),
+          languages: s.languages.filter((l) => l.universeId !== id),
         })),
+
+      clearCurrentUniverse: () => {
+        const { currentUniverseId } = get();
+        if (!currentUniverseId) return;
+        
+        if (confirm('Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?')) {
+          set((s) => ({
+            entities: s.entities.filter(e => e.universeId !== currentUniverseId),
+            connections: s.connections.filter(c => c.universeId !== currentUniverseId),
+            myths: s.myths.filter(m => m.universeId !== currentUniverseId),
+            timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
+            regions: s.regions.filter(r => r.universeId !== currentUniverseId),
+            languages: s.languages.filter(l => l.universeId !== currentUniverseId),
+          }));
+        }
+      },
+
+      purgeAllData: () => {
+        if (confirm('TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?')) {
+          localStorage.removeItem('mythos-universe-store');
+          window.location.reload();
+        }
+      },
 
       // ─── Entity ────────────────────────────
       addEntity: (data) => {
-        const universeId = get().currentUniverseId || undefined;
-        const newEntity: Entity = { id: uid(), linkCount: 0, universeId, ...data };
+        const { currentUniverseId } = get();
+        if (!currentUniverseId) {
+          throw new Error("Bir evren seçilmeden varlık eklenemez.");
+        }
+        const newEntity: Entity = { id: uid(), linkCount: 0, universeId: currentUniverseId, ...data };
         set((s) => ({ entities: [...s.entities, newEntity] }));
         return newEntity;
       },
@@ -186,6 +222,7 @@ export const useUniverseStore = create<UniverseState>()(
 
       getEntitiesByType: (type) => {
         const { entities, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
         return entities.filter((e) => e.type === type && e.universeId === currentUniverseId);
       },
 
@@ -195,8 +232,9 @@ export const useUniverseStore = create<UniverseState>()(
       },
 
       // ─── Connection ────────────────────────
-      addConnection: (sourceId, targetId, relation) => {
-        const newConn: Connection = { id: uid(), sourceId, targetId, relation };
+      addConnection: (sourceId: string, targetId: string, relation: RelationType) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newConn: Connection = { id: uid(), universeId, sourceId, targetId, relation };
         set((s) => ({ 
           connections: [...s.connections, newConn],
           entities: s.entities.map(e => {
@@ -227,13 +265,15 @@ export const useUniverseStore = create<UniverseState>()(
 
       getConnectionsForEntity: (entityId) => {
         const { connections } = get();
-        // Varsayalım bağlantıların da universeId'si olabilir, yoksa sadece source/target entity'nin evrenini varsayarız
-        // Fakat bağlantılar genelde entity'lere aittir. Güvende kalabilmek için store'daki currentUniverseId'yi dikkate almak en iyisi olur
-        // Not: connection tipinde universeId alanı var mıydı? yoktu. Ancak bağlantının kime ait olduğunu biliyorsak sorun yok. 
-        // Şimdilik sadece entity ID filtrelemesi yeterli. 
         return connections.filter(
           (c) => c.sourceId === entityId || c.targetId === entityId
         );
+      },
+
+      getConnectionsForCurrentUniverse: () => {
+        const { connections, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return connections.filter((c) => c.universeId === currentUniverseId);
       },
 
       // ─── Myth ──────────────────────────────
@@ -311,6 +351,29 @@ export const useUniverseStore = create<UniverseState>()(
           languages: s.languages.filter((l) => l.id !== id),
         })),
 
+      clearCurrentUniverse: () => {
+        const { currentUniverseId } = get();
+        if (!currentUniverseId) return;
+        
+        if (confirm('Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?')) {
+          set((s) => ({
+            entities: s.entities.filter(e => e.universeId !== currentUniverseId),
+            connections: s.connections.filter(c => c.universeId !== currentUniverseId),
+            myths: s.myths.filter(m => m.universeId !== currentUniverseId),
+            timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
+            regions: s.regions.filter(r => r.universeId !== currentUniverseId),
+            languages: s.languages.filter(l => l.universeId !== currentUniverseId),
+          }));
+        }
+      },
+
+      purgeAllData: () => {
+        if (confirm('TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?')) {
+          localStorage.removeItem('mythos-universe-store');
+          window.location.reload();
+        }
+      },
+
       // ─── Yardımcı ─────────────────────────
       resetToSeed: () => set(DEFAULT_STATE),
 
@@ -325,7 +388,7 @@ export const useUniverseStore = create<UniverseState>()(
 
         set((state) => ({
           entities: [...state.entities, ...tagWithUniverse(SEED_ENTITIES)],
-          connections: [...state.connections, ...SEED_CONNECTIONS],
+          connections: [...state.connections, ...tagWithUniverse(SEED_CONNECTIONS)],
           myths: [...state.myths, ...tagWithUniverse(SEED_MYTHS)],
           timeline: [...state.timeline, ...tagWithUniverse(SEED_TIMELINE)],
           regions: [...state.regions, ...tagWithUniverse(SEED_REGIONS)],
@@ -362,7 +425,22 @@ export const useUniverseStore = create<UniverseState>()(
     }),
     {
       name: 'mythos-universe-store',
-      version: 3, // Force fresh state to remove old dangling data completely
+      version: 5, // Bump version to force orphan data cleanup
+      onRehydrateStorage: () => (state) => {
+        // Migration/Sanitization: Ensure no dangling data without universeId
+        // and remove orphaned data whose universeId doesn't match any existing universe
+        if (state) {
+          const validUniverseIds = new Set(state.universes.map(u => u.id));
+          const isValidUniverseId = (uid: string | undefined) => !!uid && validUniverseIds.has(uid);
+
+          state.entities = state.entities.filter(e => isValidUniverseId(e.universeId));
+          state.connections = state.connections.filter(c => isValidUniverseId(c.universeId));
+          state.myths = state.myths.filter(m => isValidUniverseId(m.universeId));
+          state.timeline = state.timeline.filter(t => isValidUniverseId(t.universeId));
+          state.regions = state.regions.filter(r => isValidUniverseId(r.universeId));
+          state.languages = state.languages.filter(l => isValidUniverseId(l.universeId));
+        }
+      }
     }
   )
 );
