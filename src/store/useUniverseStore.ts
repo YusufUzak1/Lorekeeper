@@ -21,7 +21,9 @@ import type {
   MapRegion,
   Language,
   Universe,
+  Note,
 } from '@/types';
+import { useConfirmStore } from './useConfirmStore';
 
 // ── Filtre Tipleri ──
 export type EntityFilterType = EntityType | 'all';
@@ -56,6 +58,7 @@ interface UniverseState {
   timeline: TimelineEvent[];
   regions: MapRegion[];
   languages: Language[];
+  notes: Note[];
 
   // ── Arama & Filtreleme ──
   searchQuery: string;
@@ -105,6 +108,11 @@ interface UniverseState {
   updateLanguage: (id: string, data: Partial<Omit<Language, 'id'>>) => void;
   deleteLanguage: (id: string) => void;
 
+  // ── Note CRUD ──
+  addNote: (data: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Note;
+  updateNote: (id: string, data: Partial<Omit<Note, 'id'>>) => void;
+  deleteNote: (id: string) => void;
+
   // ── Yardımcı ──
   resetToSeed: () => void;
   loadSeedForUniverse: (universeId: string) => void;
@@ -115,6 +123,7 @@ interface UniverseState {
   getTimelineForCurrentUniverse: () => TimelineEvent[];
   getRegionsForCurrentUniverse: () => MapRegion[];
   getLanguagesForCurrentUniverse: () => Language[];
+  getNotesForCurrentUniverse: () => Note[];
 }
 
 // ── Varsayılan state ──
@@ -127,6 +136,7 @@ const DEFAULT_STATE = {
   timeline: [] as TimelineEvent[],
   regions: [] as MapRegion[],
   languages: [] as Language[],
+  notes: [] as Note[],
   searchQuery: '',
   activeFilter: 'all' as EntityFilterType,
 };
@@ -170,32 +180,11 @@ export const useUniverseStore = create<UniverseState>()(
           timeline: s.timeline.filter((t) => t.universeId !== id),
           regions: s.regions.filter((r) => r.universeId !== id),
           languages: s.languages.filter((l) => l.universeId !== id),
+          notes: s.notes.filter((n) => n.universeId !== id),
         })),
 
-      clearCurrentUniverse: () => {
-        const { currentUniverseId } = get();
-        if (!currentUniverseId) return;
-        
-        if (confirm('Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?')) {
-          set((s) => ({
-            entities: s.entities.filter(e => e.universeId !== currentUniverseId),
-            connections: s.connections.filter(c => c.universeId !== currentUniverseId),
-            myths: s.myths.filter(m => m.universeId !== currentUniverseId),
-            timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
-            regions: s.regions.filter(r => r.universeId !== currentUniverseId),
-            languages: s.languages.filter(l => l.universeId !== currentUniverseId),
-          }));
-        }
-      },
-
-      purgeAllData: () => {
-        if (confirm('TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?')) {
-          localStorage.removeItem('mythos-universe-store');
-          window.location.reload();
-        }
-      },
-
       // ─── Entity ────────────────────────────
+
       addEntity: (data) => {
         const { currentUniverseId } = get();
         if (!currentUniverseId) {
@@ -351,27 +340,64 @@ export const useUniverseStore = create<UniverseState>()(
           languages: s.languages.filter((l) => l.id !== id),
         })),
 
+      // ─── Note ──────────────────────────
+      addNote: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newNote: Note = { 
+          id: uid(), 
+          universeId, 
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...data 
+        };
+        set((s) => ({ notes: [...s.notes, newNote] }));
+        return newNote;
+      },
+
+      updateNote: (id, data) =>
+        set((s) => ({
+          notes: s.notes.map((n) => (n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n)),
+        })),
+
+      deleteNote: (id) =>
+        set((s) => ({
+          notes: s.notes.filter((n) => n.id !== id),
+        })),
+
       clearCurrentUniverse: () => {
         const { currentUniverseId } = get();
         if (!currentUniverseId) return;
         
-        if (confirm('Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?')) {
-          set((s) => ({
-            entities: s.entities.filter(e => e.universeId !== currentUniverseId),
-            connections: s.connections.filter(c => c.universeId !== currentUniverseId),
-            myths: s.myths.filter(m => m.universeId !== currentUniverseId),
-            timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
-            regions: s.regions.filter(r => r.universeId !== currentUniverseId),
-            languages: s.languages.filter(l => l.universeId !== currentUniverseId),
-          }));
-        }
+        useConfirmStore.getState().showConfirm({
+          title: 'Evren Verilerini Temizle',
+          message: 'Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?',
+          danger: true,
+          confirmText: 'Verileri Sil',
+          onConfirm: () => {
+            set((s) => ({
+              entities: s.entities.filter(e => e.universeId !== currentUniverseId),
+              connections: s.connections.filter(c => c.universeId !== currentUniverseId),
+              myths: s.myths.filter(m => m.universeId !== currentUniverseId),
+              timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
+              regions: s.regions.filter(r => r.universeId !== currentUniverseId),
+              languages: s.languages.filter(l => l.universeId !== currentUniverseId),
+              notes: s.notes.filter(n => n.universeId !== currentUniverseId),
+            }));
+          }
+        });
       },
 
       purgeAllData: () => {
-        if (confirm('TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?')) {
-          localStorage.removeItem('mythos-universe-store');
-          window.location.reload();
-        }
+        useConfirmStore.getState().showConfirm({
+          title: 'Sistemi Sıfırla',
+          message: 'TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?',
+          danger: true,
+          confirmText: 'Sistemi Sıfırla',
+          onConfirm: () => {
+            localStorage.removeItem('mythos-universe-store');
+            window.location.reload();
+          }
+        });
       },
 
       // ─── Yardımcı ─────────────────────────
@@ -422,23 +448,90 @@ export const useUniverseStore = create<UniverseState>()(
         if (!currentUniverseId) return [];
         return languages.filter((l) => l.universeId === currentUniverseId);
       },
+      getNotesForCurrentUniverse: () => {
+        const { notes, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return notes.filter((n) => n.universeId === currentUniverseId);
+      },
     }),
     {
       name: 'mythos-universe-store',
-      version: 5, // Bump version to force orphan data cleanup
+      version: 6, // v6: Aggressive orphan cleanup + migrate function
+
+      // migrate runs BEFORE the state is applied — this is where we sanitize old data
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Record<string, any>;
+
+        // If coming from an older version (or no version), clean up aggressively
+        if (version < 6) {
+          const universes: Universe[] = Array.isArray(state?.universes) ? state.universes : [];
+          const validIds = new Set(universes.map((u: Universe) => u.id));
+          const isValid = (uid: string | undefined) => !!uid && validIds.has(uid);
+
+          if (Array.isArray(state?.entities)) {
+            state.entities = state.entities.filter((e: any) => isValid(e?.universeId));
+          }
+          if (Array.isArray(state?.connections)) {
+            state.connections = state.connections.filter((c: any) => isValid(c?.universeId));
+          }
+          if (Array.isArray(state?.myths)) {
+            state.myths = state.myths.filter((m: any) => isValid(m?.universeId));
+          }
+          if (Array.isArray(state?.timeline)) {
+            state.timeline = state.timeline.filter((t: any) => isValid(t?.universeId));
+          }
+          if (Array.isArray(state?.regions)) {
+            state.regions = state.regions.filter((r: any) => isValid(r?.universeId));
+          }
+          if (Array.isArray(state?.languages)) {
+            state.languages = state.languages.filter((l: any) => isValid(l?.universeId));
+          }
+          if (Array.isArray(state?.notes)) {
+            state.notes = state.notes.filter((n: any) => isValid(n?.universeId));
+          }
+        }
+
+        return state as UniverseState;
+      },
+
+      // onRehydrateStorage runs AFTER state is merged — use setState to persist cleanup
       onRehydrateStorage: () => (state) => {
-        // Migration/Sanitization: Ensure no dangling data without universeId
-        // and remove orphaned data whose universeId doesn't match any existing universe
         if (state) {
           const validUniverseIds = new Set(state.universes.map(u => u.id));
           const isValidUniverseId = (uid: string | undefined) => !!uid && validUniverseIds.has(uid);
 
-          state.entities = state.entities.filter(e => isValidUniverseId(e.universeId));
-          state.connections = state.connections.filter(c => isValidUniverseId(c.universeId));
-          state.myths = state.myths.filter(m => isValidUniverseId(m.universeId));
-          state.timeline = state.timeline.filter(t => isValidUniverseId(t.universeId));
-          state.regions = state.regions.filter(r => isValidUniverseId(r.universeId));
-          state.languages = state.languages.filter(l => isValidUniverseId(l.universeId));
+          const cleanEntities = state.entities.filter(e => isValidUniverseId(e.universeId));
+          const cleanConnections = state.connections.filter(c => isValidUniverseId(c.universeId));
+          const cleanMyths = state.myths.filter(m => isValidUniverseId(m.universeId));
+          const cleanTimeline = state.timeline.filter(t => isValidUniverseId(t.universeId));
+          const cleanRegions = state.regions.filter(r => isValidUniverseId(r.universeId));
+          const cleanLanguages = state.languages.filter(l => isValidUniverseId(l.universeId));
+          const cleanNotes = state.notes ? state.notes.filter(n => isValidUniverseId(n.universeId)) : [];
+
+          // Only trigger setState if there's actually orphaned data to clean up
+          const hasOrphans =
+            cleanEntities.length !== state.entities.length ||
+            cleanConnections.length !== state.connections.length ||
+            cleanMyths.length !== state.myths.length ||
+            cleanTimeline.length !== state.timeline.length ||
+            cleanRegions.length !== state.regions.length ||
+            cleanLanguages.length !== state.languages.length ||
+            cleanNotes.length !== (state.notes?.length || 0);
+
+          if (hasOrphans) {
+            // Use setState to ensure cleaned state is persisted back to localStorage
+            setTimeout(() => {
+              useUniverseStore.setState({
+                entities: cleanEntities,
+                connections: cleanConnections,
+                myths: cleanMyths,
+                timeline: cleanTimeline,
+                regions: cleanRegions,
+                languages: cleanLanguages,
+                notes: cleanNotes,
+              });
+            }, 0);
+          }
         }
       }
     }

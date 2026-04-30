@@ -96,6 +96,16 @@ export interface Language {
   writingDirection: string;
 }
 
+// ── Notlar ──
+export interface Note {
+  id: string;
+  universeId?: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ── Evren ──
 export interface Universe {
   id: string;

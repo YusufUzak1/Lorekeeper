@@ -14,8 +14,6 @@ export function CosmosCanvas() {
   const { 
     getEntitiesForCurrentUniverse, 
     getConnectionsForCurrentUniverse,
-    entities: allEntities,
-    connections: allConnections,
     activeFilter,
     searchQuery,
     setSearchQuery
@@ -23,6 +21,7 @@ export function CosmosCanvas() {
 
   const entities = getEntitiesForCurrentUniverse();
   const connections = getConnectionsForCurrentUniverse();
+
   
   // Interaction State
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);

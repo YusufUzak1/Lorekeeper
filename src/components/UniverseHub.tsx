@@ -4,6 +4,7 @@ import { useUniverseStore, SEED_UNIVERSE_ID } from '@/store/useUniverseStore';
 import { fetchStateFromCloud, syncStateToCloud } from '@/services/syncService';
 import { Loader2, CloudDownload, CloudUpload } from 'lucide-react';
 import { Sparkles, BookOpen, Plus } from 'lucide-react';
+import { useConfirmStore } from '@/store/useConfirmStore';
 
 type UniverseHubProps = {
   onEnterExisting: (universeId: string) => void;
@@ -12,6 +13,7 @@ type UniverseHubProps = {
 
 export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubProps) {
   const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse, deleteUniverse, replaceState, purgeAllData } = useUniverseStore();
+  const { showConfirm } = useConfirmStore();
   const [loadingMsg, setLoadingMsg] = useState('');
   const [name, setName] = useState('');
   const [summary, setSummary] = useState('');
@@ -69,9 +71,13 @@ export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubPr
 
   const handleDeleteUniverse = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm('Bu evreni kalıcı olarak silmek istediğinizden emin misiniz?')) {
-      deleteUniverse(id);
-    }
+    showConfirm({
+      title: 'Evreni Sil',
+      message: 'Bu evreni kalıcı olarak silmek istediğinizden emin misiniz?',
+      danger: true,
+      confirmText: 'Sil',
+      onConfirm: () => deleteUniverse(id),
+    });
   };
 
   const handleFetchFromCloud = async () => {
@@ -80,12 +86,28 @@ export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubPr
       const cloudState = await fetchStateFromCloud();
       if (cloudState) {
         replaceState(cloudState);
-        alert('Verileriniz başarıyla buluttan indirildi!');
+        showConfirm({
+          title: 'Başarılı',
+          message: 'Verileriniz başarıyla buluttan indirildi!',
+          confirmText: 'Tamam',
+          onConfirm: () => {}
+        });
       } else {
-        alert('Bulutta kayıtlı bir veriniz bulunamadı.');
+        showConfirm({
+          title: 'Bilgi',
+          message: 'Bulutta kayıtlı bir veriniz bulunamadı.',
+          confirmText: 'Tamam',
+          onConfirm: () => {}
+        });
       }
     } catch (err) {
-      alert((err as Error).message);
+      showConfirm({
+        title: 'Hata',
+        message: (err as Error).message,
+        danger: true,
+        confirmText: 'Tamam',
+        onConfirm: () => {}
+      });
     } finally {
       setLoadingMsg('');
     }
@@ -96,9 +118,20 @@ export function UniverseHub({ onEnterExisting, onCreateUniverse }: UniverseHubPr
       setLoadingMsg('Verileriniz buluta yedekleniyor...');
       const fullState = useUniverseStore.getState();
       await syncStateToCloud(fullState);
-      alert('Tüm verileriniz başarıyla buluta yedeklendi!');
+      showConfirm({
+        title: 'Başarılı',
+        message: 'Tüm verileriniz başarıyla buluta yedeklendi!',
+        confirmText: 'Tamam',
+        onConfirm: () => {}
+      });
     } catch (err) {
-      alert((err as Error).message);
+      showConfirm({
+        title: 'Hata',
+        message: (err as Error).message,
+        danger: true,
+        confirmText: 'Tamam',
+        onConfirm: () => {}
+      });
     } finally {
       setLoadingMsg('');
     }

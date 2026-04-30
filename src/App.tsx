@@ -6,14 +6,17 @@ import { getCurrentUser, signOut } from 'aws-amplify/auth';
 import { HeroSection } from './components/HeroSection';
 import { UniverseHub } from './components/UniverseHub';
 import DashboardLayout from './components/dashboard/DashboardLayout';
+import { useUniverseStore, SEED_UNIVERSE_ID } from './store/useUniverseStore';
 import { EntityTable } from './components/dashboard/ui/EntityTable';
 import { CosmosCanvas } from './components/dashboard/cosmos/CosmosCanvas';
 import { MythologyView } from './components/dashboard/mythology/MythologyView';
 import { TimelineView } from './components/dashboard/timeline/TimelineView';
 import { MapsView } from './components/dashboard/maps/MapsView';
 import { LanguagesView } from './components/dashboard/languages/LanguagesView';
+import { NotesView } from './components/dashboard/notes/NotesView';
 import { AuthPage } from './components/AuthPage';
 import { useAuthStore } from './store/useAuthStore';
+import { ConfirmDialog } from './components/ui/ConfirmDialog';
 
 
 // Animasyonlu sayfa geçiş sarmalayıcısı
@@ -59,7 +62,8 @@ function LogoutRoute({ onLogout }: { onLogout: () => Promise<void> }) {
 function App() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuthStore();
+  const { isAuthenticated, login, logout, loginAsGuest } = useAuthStore();
+  const { universes, addUniverse, setCurrentUniverseId, loadSeedForUniverse } = useUniverseStore();
 
   useEffect(() => {
     const syncAuthSession = async () => {
@@ -84,8 +88,34 @@ function App() {
     }
   };
 
+  // ── Misafir Girişi: Seed (Yüzüklerin Efendisi) evreni ile doğrudan dashboard'a git ──
+  const handleGuestLogin = () => {
+    loginAsGuest();
+
+    // Seed evreni daha önce oluşturulmuşsa tekrar oluşturma
+    const existingSeed = universes.find((u) => u.id === SEED_UNIVERSE_ID);
+    if (!existingSeed) {
+      const seedUniverse = addUniverse({
+        name: 'Orta Dünya — Yüzüklerin Efendisi',
+        summary: "J.R.R. Tolkien'in efsanevi evreni. Elfler, cüceler, insanlar ve hobbitler bir arada yaşar.",
+        tone: 'epik',
+      });
+      // Overwrite the ID to use our constant
+      useUniverseStore.setState((s) => ({
+        universes: s.universes.map((u) =>
+          u.id === seedUniverse.id ? { ...u, id: SEED_UNIVERSE_ID } : u
+        ),
+      }));
+      loadSeedForUniverse(SEED_UNIVERSE_ID);
+    }
+
+    setCurrentUniverseId(SEED_UNIVERSE_ID);
+    navigate('/dashboard');
+  };
+
   return (
     <main className="relative min-h-screen bg-mythos-bg selection:bg-mythos-accent/30 selection:text-white">
+      <ConfirmDialog />
       {/* Global Custom Cursor */}
       <CustomCursor />
       
@@ -98,7 +128,7 @@ function App() {
           <Route path="/" element={
             <PageWrapper>
               <HeroSection
-                onEnterUniverse={() => navigate('/hub')}
+                onEnterUniverse={handleGuestLogin}
                 onLogin={() => navigate('/auth?mode=login')}
                 onRegister={() => navigate('/auth?mode=signup')}
               />
@@ -146,6 +176,7 @@ function App() {
             <Route path="timeline" element={<TimelineView />} />
             <Route path="maps" element={<MapsView />} />
             <Route path="languages" element={<LanguagesView />} />
+            <Route path="notes" element={<NotesView />} />
             <Route path="settings" element={<LegacyIframeView viewName="settings" label="Sistem Ayarları (Legacy)" />} />
             
             {/* Logout -> Hero */}
