@@ -5,7 +5,7 @@ resource "aws_apigatewayv2_api" "api" {
   
   cors_configuration {
     allow_origins = ["*"]
-    allow_methods = ["POST", "OPTIONS"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["content-type", "authorization"]
   }
 }
@@ -55,4 +55,26 @@ resource "aws_lambda_permission" "api_gw" {
 
 output "api_endpoint" {
   value = aws_apigatewayv2_api.api.api_endpoint
+}
+
+# ── SQS Entegrasyonu (AI Engine) ──
+
+resource "aws_apigatewayv2_integration" "sqs_integration" {
+  api_id              = aws_apigatewayv2_api.api.id
+  integration_type    = "AWS_PROXY"
+  integration_subtype = "SQS-SendMessage"
+  credentials_arn     = aws_iam_role.api_gw_sqs.arn
+
+  request_parameters = {
+    "QueueUrl"    = aws_sqs_queue.lore_synthesis.url
+    "MessageBody" = "$request.body"
+  }
+}
+
+resource "aws_apigatewayv2_route" "post_lore" {
+  api_id             = aws_apigatewayv2_api.api.id
+  route_key          = "POST /lore"
+  target             = "integrations/${aws_apigatewayv2_integration.sqs_integration.id}"
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito.id
 }

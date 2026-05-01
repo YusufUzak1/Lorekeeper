@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useUniverseStore } from '@/store/useUniverseStore';
+import { LoreNoteModal } from './LoreNoteModal';
 import { 
   Network, 
   Users, 
@@ -39,6 +40,7 @@ export function Sidebar() {
   const languages = getLanguagesForCurrentUniverse();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
   const navigate = useNavigate();
   
   const charCount = entities.filter(e => e.type === 'character').length;
@@ -89,6 +91,9 @@ export function Sidebar() {
       { id: 'notes', label: 'Notlar', icon: <StickyNote size={15} className="opacity-70" />, path: '/dashboard/notes' },
     ]},
   ];
+
+  // AI Note button (rendered separately from nav)
+  const handleAINote = () => setShowAIModal(true);
 
   // System items rendered separately at the bottom
   const systemItems: NavItem[] = [
@@ -308,6 +313,27 @@ export function Sidebar() {
         ))}
       </div>
 
+      {/* AI Note Button */}
+      <div className={`flex-shrink-0 border-t border-glass-border/50 ${isCollapsed ? 'px-2 py-2' : 'px-4 py-2'}`}>
+        <button
+          onClick={handleAINote}
+          title="AI Lore Notu — Serbest metin yazın, AI analiz etsin"
+          className={`w-full flex items-center gap-2.5 py-2 rounded-lg border border-mythos-accent/20 bg-gradient-to-r from-mythos-accent/[0.06] to-mythos-accent/[0.02] hover:from-mythos-accent/[0.12] hover:to-mythos-accent/[0.06] transition-all duration-300 cursor-pointer group/ai ${isCollapsed ? 'justify-center px-0' : 'px-3'}`}
+        >
+          <div className="w-5 h-5 rounded-md bg-mythos-accent/10 border border-mythos-accent/20 flex items-center justify-center group-hover/ai:bg-mythos-accent/20 transition-colors shrink-0">
+            <Sparkles size={11} className="text-mythos-accent/70 group-hover/ai:text-mythos-accent transition-colors" />
+          </div>
+          {!isCollapsed && (
+            <>
+              <span className="font-serif text-[0.55rem] tracking-[0.15em] uppercase text-mythos-accent/60 group-hover/ai:text-mythos-accent/90 transition-colors">
+                AI Not
+              </span>
+              <div className="ml-auto w-1.5 h-1.5 rounded-full bg-mythos-accent/30 animate-pulse" />
+            </>
+          )}
+        </button>
+      </div>
+
       {/* Bottom Section: Hub Link + System Links + User Card */}
       <div className="flex-shrink-0 border-t border-glass-border">
         
@@ -354,6 +380,8 @@ export function Sidebar() {
           </div>
         </div>
       </div>
+      {/* AI Note Modal */}
+      <LoreNoteModal isOpen={showAIModal} onClose={() => setShowAIModal(false)} />
     </aside>
   );
 }
