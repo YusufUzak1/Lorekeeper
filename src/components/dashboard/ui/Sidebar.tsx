@@ -22,17 +22,13 @@ import {
 export function Sidebar() {
   const { 
     getEntitiesForCurrentUniverse, 
-    getConnectionsForCurrentUniverse,
     getMythsForCurrentUniverse,
     getTimelineForCurrentUniverse,
     getRegionsForCurrentUniverse,
-    getLanguagesForCurrentUniverse,
-    universes, 
-    currentUniverseId 
+    getLanguagesForCurrentUniverse
   } = useUniverseStore();
 
   const entities = getEntitiesForCurrentUniverse();
-  const connections = getConnectionsForCurrentUniverse();
   const myths = getMythsForCurrentUniverse();
   const timeline = getTimelineForCurrentUniverse();
   const regions = getRegionsForCurrentUniverse();
