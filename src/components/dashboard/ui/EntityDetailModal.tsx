@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, MapPin, Calendar, Activity, Link2, Info, Shield, Image as ImageIcon, Check, Trash2, Scroll, Crown, Swords, Sparkles } from 'lucide-react';
+import type { Variants } from 'framer-motion';
+import { X, User, MapPin, Calendar, Activity, Link2, Shield, Image as ImageIcon, Check, Trash2, Scroll, Crown, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import type { Entity } from '@/types';
 import { useUniverseStore } from '@/store/useUniverseStore';
@@ -60,7 +61,7 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
   const statusColor = getStatusColor(entity.status);
 
   // Stagger animation for children
-  const containerVariants = {
+  const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -68,9 +69,9 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
     }
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { opacity: 0, y: 12 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' as const } }
   };
 
   return (
