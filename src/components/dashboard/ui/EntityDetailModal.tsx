@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Variants } from 'framer-motion';
-import { X, User, MapPin, Calendar, Activity, Link2, Shield, Image as ImageIcon, Check, Trash2, Scroll, Crown, Sparkles } from 'lucide-react';
-import { useState } from 'react';
+import { X, User, MapPin, Calendar, Activity, Link2, Shield, Image as ImageIcon, Check, Trash2, Scroll, Crown, Sparkles, Upload, Globe } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
 import type { Entity } from '@/types';
 import { useUniverseStore } from '@/store/useUniverseStore';
 import { useConfirmStore } from '@/store/useConfirmStore';
@@ -17,10 +17,72 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
   const { showConfirm } = useConfirmStore();
   const [isEditingImage, setIsEditingImage] = useState(false);
   const [tempImageUrl, setTempImageUrl] = useState('');
+  const [imageMode, setImageMode] = useState<'file' | 'url'>('file');
+  const [isDragging, setIsDragging] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   if (!entity) return null;
 
   const connections = getConnectionsForEntity(entity.id);
+
+  // Convert file to base64 data URL
+  const processFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    // Limit file size to 2MB for localStorage
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Dosya boyutu 2MB\'dan küçük olmalıdır.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImagePreview(dataUrl);
+      setTempImageUrl(dataUrl);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  }, []);
+
+  const handleSaveImage = () => {
+    if (tempImageUrl) {
+      updateEntity(entity.id, { imageUrl: tempImageUrl });
+    }
+    setIsEditingImage(false);
+    setImagePreview(null);
+    setTempImageUrl('');
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingImage(false);
+    setImagePreview(null);
+    setTempImageUrl('');
+    setImageMode('file');
+  };
 
   const handleDelete = () => {
     showConfirm({
@@ -128,7 +190,7 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
                     <Trash2 size={16} />
                   </button>
                   <button
-                    onClick={() => { setIsEditingImage(false); onClose(); }}
+                    onClick={() => { handleCancelEdit(); onClose(); }}
                     className="p-2 rounded-lg text-white/25 hover:text-white/70 hover:bg-white/5 transition-all cursor-pointer"
                     title="Kapat"
                   >
@@ -182,11 +244,20 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
                 
                 {/* ── Image Section ── */}
                 <motion.div variants={itemVariants}>
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                  />
+
                   {!isEditingImage ? (
                     entity.imageUrl ? (
                       <div 
                         className="w-full h-52 rounded-xl overflow-hidden relative group cursor-pointer"
-                        onClick={() => { setIsEditingImage(true); setTempImageUrl(entity.imageUrl || ''); }}
+                        onClick={() => { setIsEditingImage(true); setTempImageUrl(entity.imageUrl || ''); setImagePreview(entity.imageUrl || null); }}
                         style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                       >
                         <img src={entity.imageUrl} alt={entity.name} className="w-full h-full object-cover" />
@@ -224,45 +295,141 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
                     )
                   ) : (
                     <div 
-                      className="w-full p-4 rounded-xl flex flex-col gap-3"
+                      className="w-full rounded-xl flex flex-col gap-0 overflow-hidden"
                       style={{
-                        background: 'rgba(212,175,55,0.04)',
-                        border: '1px solid rgba(212,175,55,0.2)',
+                        background: 'rgba(212,175,55,0.03)',
+                        border: '1px solid rgba(212,175,55,0.15)',
                       }}
                     >
-                      <div className="text-[0.6rem] text-mythos-accent/70 uppercase tracking-[0.2em] font-serif">Görsel URL'si</div>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          value={tempImageUrl}
-                          onChange={(e) => setTempImageUrl(e.target.value)}
-                          placeholder="https://..."
-                          className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-mythos-accent/50 transition-colors"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              updateEntity(entity.id, { imageUrl: tempImageUrl });
-                              setIsEditingImage(false);
-                            } else if (e.key === 'Escape') {
-                              setIsEditingImage(false);
-                            }
-                          }}
-                        />
-                        <button 
-                          onClick={() => {
-                            updateEntity(entity.id, { imageUrl: tempImageUrl });
-                            setIsEditingImage(false);
-                          }}
-                          className="px-3 bg-mythos-accent/20 hover:bg-mythos-accent/30 text-mythos-accent rounded-lg flex items-center justify-center transition-colors"
+                      {/* Mode Tabs */}
+                      <div className="flex border-b" style={{ borderColor: 'rgba(212,175,55,0.1)' }}>
+                        <button
+                          onClick={() => setImageMode('file')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[0.6rem] uppercase tracking-[0.15em] transition-all ${
+                            imageMode === 'file' 
+                              ? 'text-mythos-accent bg-mythos-accent/8' 
+                              : 'text-white/30 hover:text-white/50 hover:bg-white/[0.02]'
+                          }`}
                         >
-                          <Check size={18} />
+                          <Upload size={12} />
+                          Dosya Yükle
                         </button>
-                        <button 
-                          onClick={() => setIsEditingImage(false)}
-                          className="px-3 bg-white/5 hover:bg-white/10 text-white/70 rounded-lg flex items-center justify-center transition-colors"
+                        <button
+                          onClick={() => setImageMode('url')}
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 text-[0.6rem] uppercase tracking-[0.15em] transition-all ${
+                            imageMode === 'url' 
+                              ? 'text-mythos-accent bg-mythos-accent/8' 
+                              : 'text-white/30 hover:text-white/50 hover:bg-white/[0.02]'
+                          }`}
                         >
-                          <X size={18} />
+                          <Globe size={12} />
+                          URL Yapıştır
                         </button>
+                      </div>
+
+                      {/* Content Area */}
+                      <div className="p-4 flex flex-col gap-3">
+                        {imageMode === 'file' ? (
+                          <>
+                            {/* Drag & Drop Zone */}
+                            <div
+                              onDragOver={handleDragOver}
+                              onDragLeave={handleDragLeave}
+                              onDrop={handleDrop}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="relative w-full rounded-lg flex flex-col items-center justify-center gap-3 cursor-pointer transition-all overflow-hidden"
+                              style={{
+                                padding: imagePreview ? '0' : '1.5rem 1rem',
+                                background: isDragging ? 'rgba(212,175,55,0.08)' : 'rgba(0,0,0,0.2)',
+                                border: isDragging 
+                                  ? '2px dashed rgba(212,175,55,0.5)' 
+                                  : '2px dashed rgba(255,255,255,0.08)',
+                                minHeight: imagePreview ? '10rem' : 'auto',
+                              }}
+                            >
+                              {imagePreview ? (
+                                <>
+                                  <img src={imagePreview} alt="Önizleme" className="w-full h-40 object-cover" />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <div className="flex items-center gap-2 px-3 py-2 bg-black/70 backdrop-blur-md rounded-lg">
+                                      <Upload size={14} className="text-mythos-accent" />
+                                      <span className="text-[0.6rem] text-white/80 uppercase tracking-wider">Değiştir</span>
+                                    </div>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div 
+                                    className="w-12 h-12 rounded-xl flex items-center justify-center transition-transform"
+                                    style={{
+                                      background: isDragging ? 'rgba(212,175,55,0.15)' : 'rgba(212,175,55,0.06)',
+                                      border: '1px solid rgba(212,175,55,0.15)',
+                                      transform: isDragging ? 'scale(1.1)' : 'scale(1)',
+                                    }}
+                                  >
+                                    <Upload size={20} className={isDragging ? 'text-mythos-accent' : 'text-white/30'} />
+                                  </div>
+                                  <div className="text-center">
+                                    <p className="text-[0.7rem] text-white/50">
+                                      {isDragging ? (
+                                        <span className="text-mythos-accent font-medium">Bırakarak yükle...</span>
+                                      ) : (
+                                        <>Görseli buraya <span className="text-mythos-accent/70">sürükle-bırak</span> veya <span className="text-mythos-accent/70">tıkla</span></>
+                                      )}
+                                    </p>
+                                    <p className="text-[0.55rem] text-white/20 mt-1">PNG, JPG, WEBP • Maks. 2MB</p>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* URL Input */}
+                            <div className="text-[0.55rem] text-white/25 uppercase tracking-[0.15em]">Görsel URL adresi</div>
+                            <input 
+                              type="text" 
+                              value={tempImageUrl.startsWith('data:') ? '' : tempImageUrl}
+                              onChange={(e) => { setTempImageUrl(e.target.value); setImagePreview(e.target.value || null); }}
+                              placeholder="https://example.com/image.jpg"
+                              className="w-full bg-black/40 border border-white/8 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-mythos-accent/40 transition-colors placeholder:text-white/15"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveImage();
+                                else if (e.key === 'Escape') handleCancelEdit();
+                              }}
+                            />
+                            {/* URL Preview */}
+                            {tempImageUrl && !tempImageUrl.startsWith('data:') && (
+                              <div className="w-full h-32 rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                                <img 
+                                  src={tempImageUrl} 
+                                  alt="Önizleme" 
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                />
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-2 pt-1">
+                          <button 
+                            onClick={handleSaveImage}
+                            disabled={!tempImageUrl}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 bg-mythos-accent/15 hover:bg-mythos-accent/25 text-mythos-accent rounded-lg text-[0.65rem] uppercase tracking-[0.15em] transition-all disabled:opacity-30 disabled:pointer-events-none"
+                          >
+                            <Check size={14} />
+                            Kaydet
+                          </button>
+                          <button 
+                            onClick={handleCancelEdit}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/70 rounded-lg text-[0.65rem] uppercase tracking-[0.15em] transition-all"
+                          >
+                            İptal
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
