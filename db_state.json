@@ -1,0 +1,195 @@
+{
+  "entities": [
+    {
+      "universeId": "seed-lotr-universe",
+      "linkCount": 2,
+      "type": "character",
+      "status": "active",
+      "era": "",
+      "description": "",
+      "domains": [],
+      "name": "Aragorn",
+      "id": "232bc3f0-0a90-40e4-b441-99bf0c4655cc"
+    },
+    {
+      "era": "",
+      "description": "",
+      "type": "character",
+      "universeId": "seed-lotr-universe",
+      "status": "active",
+      "id": "aad97958-b74c-4ae5-84d1-a870926e2c31",
+      "name": "Gollum",
+      "domains": [],
+      "linkCount": 2
+    },
+    {
+      "era": "",
+      "status": "active",
+      "type": "location",
+      "description": "",
+      "name": "\u00d6l\u00fc Batakl\u0131klar",
+      "id": "89244fd8-e770-4c2b-bec4-28d4d624e791",
+      "universeId": "seed-lotr-universe",
+      "linkCount": 2,
+      "domains": []
+    },
+    {
+      "linkCount": 0,
+      "era": "",
+      "id": "9c330b2a-a52b-40a8-923d-794fde94a8d9",
+      "type": "event",
+      "universeId": "seed-lotr-universe",
+      "status": "active",
+      "domains": [],
+      "description": "",
+      "name": "Kovulma"
+    },
+    {
+      "id": "71cfd390-2193-4098-95d2-acd34583267f",
+      "linkCount": 0,
+      "universeId": "seed-lotr-universe",
+      "description": "",
+      "name": "Aragorn'un Gollum'u kovalamas\u0131",
+      "type": "event",
+      "status": "active",
+      "era": "",
+      "domains": []
+    },
+    {
+      "description": "",
+      "status": "active",
+      "domains": [],
+      "id": "a24060f1-760b-439f-ac26-0b86631a6a59",
+      "type": "event",
+      "name": "Kovalama",
+      "linkCount": 0,
+      "universeId": "seed-lotr-universe",
+      "era": ""
+    },
+    {
+      "type": "event",
+      "name": "Aragorn'un Gollum'u kovalamas\u0131 ve yakalamas\u0131",
+      "domains": [],
+      "universeId": "seed-lotr-universe",
+      "era": "",
+      "status": "active",
+      "id": "70640795-e409-4553-8f7c-0ad5f2c22368",
+      "linkCount": 0,
+      "description": ""
+    },
+    {
+      "type": "character",
+      "name": "aaa",
+      "description": "likes bbb",
+      "id": "dfe3910e-d43d-4a5d-86cf-3ef4959d7792",
+      "universeId": "mp46z3lb-gz60o1",
+      "status": "active",
+      "era": "",
+      "linkCount": 1,
+      "domains": []
+    },
+    {
+      "linkCount": 1,
+      "domains": [],
+      "type": "character",
+      "id": "0e2d37eb-5c6c-468f-a32e-cd4fe35d389f",
+      "universeId": "mp46z3lb-gz60o1",
+      "era": "",
+      "description": "is liked by aaa",
+      "name": "bbb",
+      "status": "active"
+    },
+    {
+      "id": "a9e16ae2-747f-4e6a-b910-0f434e605ca9",
+      "status": "active",
+      "universeId": "mp46z3lb-gz60o1",
+      "name": "yi",
+      "domains": [],
+      "type": "character",
+      "era": "",
+      "linkCount": 0,
+      "description": "is doing the action of liking"
+    },
+    {
+      "id": "0b677594-4c93-4dd5-9a35-208f79e5f8b6",
+      "name": "Yusuf",
+      "universeId": "mpvcimxd-5i7fif",
+      "status": "active",
+      "description": "",
+      "domains": [],
+      "era": "",
+      "type": "character",
+      "linkCount": 1
+    },
+    {
+      "id": "5bf259b2-30f0-4781-95a6-1c020ec4bdd8",
+      "universeId": "mpvcimxd-5i7fif",
+      "domains": [],
+      "name": "H\u00fcmeyra",
+      "type": "character",
+      "linkCount": 1,
+      "status": "active",
+      "era": "",
+      "description": ""
+    },
+    {
+      "domains": [],
+      "description": "Yusuf ve H\u00fcmeyra 2028 y\u0131l\u0131nda evlendiler",
+      "name": "Yusuf ve H\u00fcmeyra'n\u0131n evliligi",
+      "id": "76caf3e7-dc66-483c-88e4-532d7944d396",
+      "status": "active",
+      "type": "event",
+      "universeId": "mpvcimxd-5i7fif",
+      "linkCount": 0,
+      "era": "2028"
+    },
+    {
+      "name": "Arven",
+      "id": "5d4bdc1e-d601-4d8a-b8ae-d0c75a367c50",
+      "type": "character",
+      "universeId": "seed-lotr-universe",
+      "linkCount": 0,
+      "domains": [],
+      "description": "son of Elrond",
+      "status": "active",
+      "era": ""
+    }
+  ],
+  "connections": [
+    {
+      "targetId": "aad97958-b74c-4ae5-84d1-a870926e2c31",
+      "id": "d10247a5-3f11-41a4-8f79-b5854e4f71b3",
+      "universeId": "seed-lotr-universe",
+      "sourceId": "232bc3f0-0a90-40e4-b441-99bf0c4655cc",
+      "relation": "enemy"
+    },
+    {
+      "universeId": "seed-lotr-universe",
+      "sourceId": "dfe3910e-d43d-4a5d-86cf-3ef4959d7792",
+      "id": "1fb895a7-1b22-4937-a870-7fd9fba73b6e",
+      "relation": "friend",
+      "targetId": "0e2d37eb-5c6c-468f-a32e-cd4fe35d389f"
+    },
+    {
+      "universeId": "seed-lotr-universe",
+      "sourceId": "0b677594-4c93-4dd5-9a35-208f79e5f8b6",
+      "relation": "friend",
+      "targetId": "5bf259b2-30f0-4781-95a6-1c020ec4bdd8",
+      "id": "474ba3db-0462-4430-a693-d15a246bb54c"
+    },
+    {
+      "id": "8cbec993-9e29-48dd-942b-6647b0a732ac",
+      "relation": "located_in",
+      "targetId": "89244fd8-e770-4c2b-bec4-28d4d624e791",
+      "universeId": "seed-lotr-universe",
+      "sourceId": "232bc3f0-0a90-40e4-b441-99bf0c4655cc"
+    },
+    {
+      "id": "cf6ed1e4-afcd-4c28-b3d7-afafe3be274f",
+      "targetId": "89244fd8-e770-4c2b-bec4-28d4d624e791",
+      "universeId": "seed-lotr-universe",
+      "sourceId": "aad97958-b74c-4ae5-84d1-a870926e2c31",
+      "relation": "located_in"
+    }
+  ]
+}

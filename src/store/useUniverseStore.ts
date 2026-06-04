@@ -1,0 +1,585 @@
+/* ─────────────────────────────────────────────
+ * MYTHOS Lorekeeper — Universe Store
+ *
+ * Merkezi Zustand store:
+ *  • Tüm veri koleksiyonları (entities, connections, myths, timeline, regions, languages)
+ *  • CRUD aksiyonları (add, update, delete)
+ *  • localStorage persistence (zustand/middleware → persist)
+ *  • Seed data ile başlatma
+ * ───────────────────────────────────────────── */
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+import type {
+  Entity,
+  EntityType,
+  Connection,
+  RelationType,
+  MythCard,
+  TimelineEvent,
+  MapRegion,
+  Language,
+  Universe,
+  Note,
+} from '@/types';
+import { useConfirmStore } from './useConfirmStore';
+
+// ── Filtre Tipleri ──
+export type EntityFilterType = EntityType | 'all';
+
+import { fetchStateFromCloud, pushStateToCloud } from '@/services/loreService';
+
+import {
+  SEED_ENTITIES,
+  SEED_CONNECTIONS,
+  SEED_MYTHS,
+  SEED_TIMELINE,
+  SEED_REGIONS,
+  SEED_LANGUAGES,
+} from '@/data/seed';
+
+// ── Sabit Seed Universe ID (Yüzüklerin Efendisi demo evreni) ──
+export const SEED_UNIVERSE_ID = 'seed-lotr-universe';
+
+// ── ID üretici ──
+function uid(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+// ── Store State ──
+interface UniverseState {
+  // ── Aktif evren ──
+  currentUniverseId: string | null;
+  universes: Universe[];
+
+  // ── Veri koleksiyonları ──
+  entities: Entity[];
+  connections: Connection[];
+  myths: MythCard[];
+  timeline: TimelineEvent[];
+  regions: MapRegion[];
+  languages: Language[];
+  notes: Note[];
+
+  // ── Arama & Filtreleme ──
+  searchQuery: string;
+  activeFilter: EntityFilterType;
+  setSearchQuery: (q: string) => void;
+  setActiveFilter: (f: EntityFilterType) => void;
+
+  // ── Evren aksiyonları ──
+  replaceState: (newState: Partial<UniverseState>) => void;
+  setCurrentUniverseId: (id: string | null) => void;
+  addUniverse: (data: Omit<Universe, 'id' | 'createdAt'>) => Universe;
+  deleteUniverse: (id: string) => void;
+  clearCurrentUniverse: () => void;
+  purgeAllData: () => void;
+
+  // ── Entity CRUD ──
+  addEntity: (data: Omit<Entity, 'id' | 'linkCount'>) => Entity;
+  updateEntity: (id: string, data: Partial<Omit<Entity, 'id'>>) => void;
+  deleteEntity: (id: string) => void;
+  getEntitiesByType: (type: EntityType) => Entity[];
+  getEntityById: (id: string) => Entity | undefined;
+
+  // ── Connection CRUD ──
+  addConnection: (sourceId: string, targetId: string, relation: RelationType) => Connection;
+  deleteConnection: (id: string) => void;
+  getConnectionsForEntity: (entityId: string) => Connection[];
+  getConnectionsForCurrentUniverse: () => Connection[];
+
+  // ── Myth CRUD ──
+  addMyth: (data: Omit<MythCard, 'id'>) => MythCard;
+  updateMyth: (id: string, data: Partial<Omit<MythCard, 'id'>>) => void;
+  deleteMyth: (id: string) => void;
+
+  // ── Timeline CRUD ──
+  addTimelineEvent: (data: Omit<TimelineEvent, 'id'>) => TimelineEvent;
+  updateTimelineEvent: (id: string, data: Partial<Omit<TimelineEvent, 'id'>>) => void;
+  deleteTimelineEvent: (id: string) => void;
+  getTimelineByEra: (era: string) => TimelineEvent[];
+
+  // ── Region CRUD ──
+  addRegion: (data: Omit<MapRegion, 'id'>) => MapRegion;
+  updateRegion: (id: string, data: Partial<Omit<MapRegion, 'id'>>) => void;
+  deleteRegion: (id: string) => void;
+
+  // ── Language CRUD ──
+  addLanguage: (data: Omit<Language, 'id'>) => Language;
+  updateLanguage: (id: string, data: Partial<Omit<Language, 'id'>>) => void;
+  deleteLanguage: (id: string) => void;
+
+  // ── Note CRUD ──
+  addNote: (data: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => Note;
+  updateNote: (id: string, data: Partial<Omit<Note, 'id'>>) => void;
+  deleteNote: (id: string) => void;
+
+  // ── Yardımcı ──
+  resetToSeed: () => void;
+  loadSeedForUniverse: (universeId: string) => void;
+
+  // ── Universe-scoped Getters ──
+  getMythsForCurrentUniverse: () => MythCard[];
+  getEntitiesForCurrentUniverse: () => Entity[];
+  getTimelineForCurrentUniverse: () => TimelineEvent[];
+  getRegionsForCurrentUniverse: () => MapRegion[];
+  getLanguagesForCurrentUniverse: () => Language[];
+  getNotesForCurrentUniverse: () => Note[];
+
+  // ── Bulut Senkronizasyonu ──
+  syncFromCloud: () => Promise<void>;
+  syncToCloud: () => Promise<void>;
+}
+
+// ── Varsayılan state ──
+const DEFAULT_STATE = {
+  currentUniverseId: null as string | null,
+  universes: [] as Universe[],
+  entities: [] as Entity[],
+  connections: [] as Connection[],
+  myths: [] as MythCard[],
+  timeline: [] as TimelineEvent[],
+  regions: [] as MapRegion[],
+  languages: [] as Language[],
+  notes: [] as Note[],
+  searchQuery: '',
+  activeFilter: 'all' as EntityFilterType,
+};
+
+// ═══════════════════════════════════════════════
+// STORE
+// ═══════════════════════════════════════════════
+
+export const useUniverseStore = create<UniverseState>()(
+  persist(
+    (set, get) => ({
+      // ── Init ──
+      ...DEFAULT_STATE,
+
+      // ─── Arama & Filtreleme ──────────────
+      setSearchQuery: (q) => set({ searchQuery: q }),
+      setActiveFilter: (f) => set({ activeFilter: f }),
+
+      // ─── Evren ─────────────────────────────
+      replaceState: (newState) => set((s) => ({ ...s, ...newState })),
+      setCurrentUniverseId: (id) => set({ currentUniverseId: id }),
+
+      addUniverse: (data) => {
+        const newUniverse: Universe = {
+          id: uid(),
+          createdAt: new Date().toISOString(),
+          ...data,
+        };
+        set((s) => ({ universes: [...s.universes, newUniverse] }));
+        return newUniverse;
+      },
+
+      deleteUniverse: (id) =>
+        set((s) => ({
+          universes: s.universes.filter((u) => u.id !== id),
+          currentUniverseId: s.currentUniverseId === id ? null : s.currentUniverseId,
+          // Silinen evrene ait tüm verileri de temizle
+          entities: s.entities.filter((e) => e.universeId !== id),
+          connections: s.connections.filter((c) => c.universeId !== id),
+          myths: s.myths.filter((m) => m.universeId !== id),
+          timeline: s.timeline.filter((t) => t.universeId !== id),
+          regions: s.regions.filter((r) => r.universeId !== id),
+          languages: s.languages.filter((l) => l.universeId !== id),
+          notes: s.notes.filter((n) => n.universeId !== id),
+        })),
+
+      // ─── Entity ────────────────────────────
+
+      addEntity: (data) => {
+        const { currentUniverseId } = get();
+        if (!currentUniverseId) {
+          throw new Error("Bir evren seçilmeden varlık eklenemez.");
+        }
+        const newEntity: Entity = { id: uid(), linkCount: 0, universeId: currentUniverseId, ...data };
+        set((s) => ({ entities: [...s.entities, newEntity] }));
+        return newEntity;
+      },
+
+      updateEntity: (id, data) =>
+        set((s) => ({
+          entities: s.entities.map((e) => (e.id === id ? { ...e, ...data } : e)),
+        })),
+
+      deleteEntity: (id) =>
+        set((s) => ({
+          entities: s.entities.filter((e) => e.id !== id),
+          // İlişkili bağlantıları da sil
+          connections: s.connections.filter(
+            (c) => c.sourceId !== id && c.targetId !== id
+          ),
+        })),
+
+      getEntitiesByType: (type) => {
+        const { entities, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return entities.filter((e) => e.type === type && e.universeId === currentUniverseId);
+      },
+
+      getEntityById: (id) => {
+        const { entities, currentUniverseId } = get();
+        return entities.find((e) => e.id === id && e.universeId === currentUniverseId);
+      },
+
+      // ─── Connection ────────────────────────
+      addConnection: (sourceId: string, targetId: string, relation: RelationType) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newConn: Connection = { id: uid(), universeId, sourceId, targetId, relation };
+        set((s) => ({ 
+          connections: [...s.connections, newConn],
+          entities: s.entities.map(e => {
+            if (e.id === sourceId || e.id === targetId) {
+              return { ...e, linkCount: (e.linkCount || 0) + 1 };
+            }
+            return e;
+          })
+        }));
+        return newConn;
+      },
+
+      deleteConnection: (id) =>
+        set((s) => {
+          const conn = s.connections.find(c => c.id === id);
+          if (!conn) return s;
+          
+          return {
+            connections: s.connections.filter((c) => c.id !== id),
+            entities: s.entities.map(e => {
+              if (e.id === conn.sourceId || e.id === conn.targetId) {
+                return { ...e, linkCount: Math.max(0, (e.linkCount || 0) - 1) };
+              }
+              return e;
+            })
+          };
+        }),
+
+      getConnectionsForEntity: (entityId) => {
+        const { connections } = get();
+        return connections.filter(
+          (c) => c.sourceId === entityId || c.targetId === entityId
+        );
+      },
+
+      getConnectionsForCurrentUniverse: () => {
+        const { connections, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return connections.filter((c) => c.universeId === currentUniverseId);
+      },
+
+      // ─── Myth ──────────────────────────────
+      addMyth: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newMyth: MythCard = { id: uid(), universeId, ...data };
+        set((s) => ({ myths: [...s.myths, newMyth] }));
+        return newMyth;
+      },
+
+      updateMyth: (id, data) =>
+        set((s) => ({
+          myths: s.myths.map((m) => (m.id === id ? { ...m, ...data } : m)),
+        })),
+
+      deleteMyth: (id) =>
+        set((s) => ({ myths: s.myths.filter((m) => m.id !== id) })),
+
+      // ─── Timeline ─────────────────────────
+      addTimelineEvent: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newEvent: TimelineEvent = { id: uid(), universeId, ...data };
+        set((s) => ({ timeline: [...s.timeline, newEvent] }));
+        return newEvent;
+      },
+
+      updateTimelineEvent: (id, data) =>
+        set((s) => ({
+          timeline: s.timeline.map((t) => (t.id === id ? { ...t, ...data } : t)),
+        })),
+
+      deleteTimelineEvent: (id) =>
+        set((s) => ({
+          timeline: s.timeline.filter((t) => t.id !== id),
+        })),
+
+      getTimelineByEra: (era) => {
+        const { timeline, currentUniverseId } = get();
+        return timeline.filter((t) => t.era === era && t.universeId === currentUniverseId);
+      },
+
+      // ─── Region ────────────────────────────
+      addRegion: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newRegion: MapRegion = { id: uid(), universeId, ...data };
+        set((s) => ({ regions: [...s.regions, newRegion] }));
+        return newRegion;
+      },
+
+      updateRegion: (id, data) =>
+        set((s) => ({
+          regions: s.regions.map((r) => (r.id === id ? { ...r, ...data } : r)),
+        })),
+
+      deleteRegion: (id) =>
+        set((s) => ({
+          regions: s.regions.filter((r) => r.id !== id),
+        })),
+
+      // ─── Language ──────────────────────────
+      addLanguage: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newLang: Language = { id: uid(), universeId, ...data };
+        set((s) => ({ languages: [...s.languages, newLang] }));
+        return newLang;
+      },
+
+      updateLanguage: (id, data) =>
+        set((s) => ({
+          languages: s.languages.map((l) => (l.id === id ? { ...l, ...data } : l)),
+        })),
+
+      deleteLanguage: (id) =>
+        set((s) => ({
+          languages: s.languages.filter((l) => l.id !== id),
+        })),
+
+      // ─── Note ──────────────────────────
+      addNote: (data) => {
+        const universeId = get().currentUniverseId || undefined;
+        const newNote: Note = { 
+          id: uid(), 
+          universeId, 
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          ...data 
+        };
+        set((s) => ({ notes: [...s.notes, newNote] }));
+        return newNote;
+      },
+
+      updateNote: (id, data) =>
+        set((s) => ({
+          notes: s.notes.map((n) => (n.id === id ? { ...n, ...data, updatedAt: new Date().toISOString() } : n)),
+        })),
+
+      deleteNote: (id) =>
+        set((s) => ({
+          notes: s.notes.filter((n) => n.id !== id),
+        })),
+
+      clearCurrentUniverse: () => {
+        const { currentUniverseId } = get();
+        if (!currentUniverseId) return;
+        
+        useConfirmStore.getState().showConfirm({
+          title: 'Evren Verilerini Temizle',
+          message: 'Bu evrendeki tüm verileri (karakterler, efsaneler, haritalar vb.) silmek istediğinizden emin misiniz?',
+          danger: true,
+          confirmText: 'Verileri Sil',
+          onConfirm: () => {
+            set((s) => ({
+              entities: s.entities.filter(e => e.universeId !== currentUniverseId),
+              connections: s.connections.filter(c => c.universeId !== currentUniverseId),
+              myths: s.myths.filter(m => m.universeId !== currentUniverseId),
+              timeline: s.timeline.filter(t => t.universeId !== currentUniverseId),
+              regions: s.regions.filter(r => r.universeId !== currentUniverseId),
+              languages: s.languages.filter(l => l.universeId !== currentUniverseId),
+              notes: s.notes.filter(n => n.universeId !== currentUniverseId),
+            }));
+          }
+        });
+      },
+
+      purgeAllData: () => {
+        useConfirmStore.getState().showConfirm({
+          title: 'Sistemi Sıfırla',
+          message: 'TÜM evrenler ve veriler kalıcı olarak silinecektir. Emin misiniz?',
+          danger: true,
+          confirmText: 'Sistemi Sıfırla',
+          onConfirm: () => {
+            localStorage.removeItem('mythos-universe-store');
+            window.location.reload();
+          }
+        });
+      },
+
+      // ─── Yardımcı ─────────────────────────
+      resetToSeed: () => set(DEFAULT_STATE),
+
+      loadSeedForUniverse: (universeId: string) => {
+        // Önce bu evren için mevcut seed verilerini temizle (çift yükleme önleme)
+        const s = get();
+        const alreadyHasData = s.myths.some((m) => m.universeId === universeId);
+        if (alreadyHasData) return; // Zaten yüklü, tekrar ekleme
+
+        const tagWithUniverse = <T extends { id: string }>(items: T[]): (T & { universeId: string })[] =>
+          items.map((item) => ({ ...item, universeId }));
+
+        set((state) => ({
+          entities: [...state.entities, ...tagWithUniverse(SEED_ENTITIES)],
+          connections: [...state.connections, ...tagWithUniverse(SEED_CONNECTIONS)],
+          myths: [...state.myths, ...tagWithUniverse(SEED_MYTHS)],
+          timeline: [...state.timeline, ...tagWithUniverse(SEED_TIMELINE)],
+          regions: [...state.regions, ...tagWithUniverse(SEED_REGIONS)],
+          languages: [...state.languages, ...tagWithUniverse(SEED_LANGUAGES)],
+        }));
+      },
+
+      // ─── Universe-scoped Getters ─────────
+      getMythsForCurrentUniverse: () => {
+        const { myths, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return myths.filter((m) => m.universeId === currentUniverseId);
+      },
+      getEntitiesForCurrentUniverse: () => {
+        const { entities, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return entities.filter((e) => e.universeId === currentUniverseId);
+      },
+      getTimelineForCurrentUniverse: () => {
+        const { timeline, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return timeline.filter((t) => t.universeId === currentUniverseId);
+      },
+      getRegionsForCurrentUniverse: () => {
+        const { regions, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return regions.filter((r) => r.universeId === currentUniverseId);
+      },
+      getLanguagesForCurrentUniverse: () => {
+        const { languages, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return languages.filter((l) => l.universeId === currentUniverseId);
+      },
+      getNotesForCurrentUniverse: () => {
+        const { notes, currentUniverseId } = get();
+        if (!currentUniverseId) return [];
+        return notes.filter((n) => n.universeId === currentUniverseId);
+      },
+
+      // ─── Bulut Senkronizasyonu ───────────
+      syncFromCloud: async () => {
+        try {
+          const cloudState = await fetchStateFromCloud();
+          if (cloudState) {
+            set((s) => ({
+              ...s,
+              ...cloudState,
+              // Yerel görünüme dair ayarları koruyoruz
+              currentUniverseId: s.currentUniverseId,
+              searchQuery: s.searchQuery,
+              activeFilter: s.activeFilter
+            }));
+          }
+        } catch (error) {
+          console.error("Buluttan veri çekilemedi:", error);
+          throw error;
+        }
+      },
+
+      syncToCloud: async () => {
+        try {
+          const state = get();
+          const stateToSync = {
+            universes: state.universes,
+            entities: state.entities,
+            connections: state.connections,
+            myths: state.myths,
+            timeline: state.timeline,
+            regions: state.regions,
+            languages: state.languages,
+            notes: state.notes,
+          };
+          await pushStateToCloud(stateToSync);
+        } catch (error) {
+          console.error("Buluta veri gönderilemedi:", error);
+          throw error;
+        }
+      },
+    }),
+    {
+      name: 'mythos-universe-store',
+      version: 6, // v6: Aggressive orphan cleanup + migrate function
+
+      // migrate runs BEFORE the state is applied — this is where we sanitize old data
+      migrate: (persistedState: unknown, version: number) => {
+        const state = persistedState as Record<string, any>;
+
+        // If coming from an older version (or no version), clean up aggressively
+        if (version < 6) {
+          const universes: Universe[] = Array.isArray(state?.universes) ? state.universes : [];
+          const validIds = new Set(universes.map((u: Universe) => u.id));
+          const isValid = (uid: string | undefined) => !!uid && validIds.has(uid);
+
+          if (Array.isArray(state?.entities)) {
+            state.entities = state.entities.filter((e: any) => isValid(e?.universeId));
+          }
+          if (Array.isArray(state?.connections)) {
+            state.connections = state.connections.filter((c: any) => isValid(c?.universeId));
+          }
+          if (Array.isArray(state?.myths)) {
+            state.myths = state.myths.filter((m: any) => isValid(m?.universeId));
+          }
+          if (Array.isArray(state?.timeline)) {
+            state.timeline = state.timeline.filter((t: any) => isValid(t?.universeId));
+          }
+          if (Array.isArray(state?.regions)) {
+            state.regions = state.regions.filter((r: any) => isValid(r?.universeId));
+          }
+          if (Array.isArray(state?.languages)) {
+            state.languages = state.languages.filter((l: any) => isValid(l?.universeId));
+          }
+          if (Array.isArray(state?.notes)) {
+            state.notes = state.notes.filter((n: any) => isValid(n?.universeId));
+          }
+        }
+
+        return state as UniverseState;
+      },
+
+      // onRehydrateStorage runs AFTER state is merged — use setState to persist cleanup
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          const validUniverseIds = new Set(state.universes.map(u => u.id));
+          const isValidUniverseId = (uid: string | undefined) => !!uid && validUniverseIds.has(uid);
+
+          const cleanEntities = state.entities.filter(e => isValidUniverseId(e.universeId));
+          const cleanConnections = state.connections.filter(c => isValidUniverseId(c.universeId));
+          const cleanMyths = state.myths.filter(m => isValidUniverseId(m.universeId));
+          const cleanTimeline = state.timeline.filter(t => isValidUniverseId(t.universeId));
+          const cleanRegions = state.regions.filter(r => isValidUniverseId(r.universeId));
+          const cleanLanguages = state.languages.filter(l => isValidUniverseId(l.universeId));
+          const cleanNotes = state.notes ? state.notes.filter(n => isValidUniverseId(n.universeId)) : [];
+
+          // Only trigger setState if there's actually orphaned data to clean up
+          const hasOrphans =
+            cleanEntities.length !== state.entities.length ||
+            cleanConnections.length !== state.connections.length ||
+            cleanMyths.length !== state.myths.length ||
+            cleanTimeline.length !== state.timeline.length ||
+            cleanRegions.length !== state.regions.length ||
+            cleanLanguages.length !== state.languages.length ||
+            cleanNotes.length !== (state.notes?.length || 0);
+
+          if (hasOrphans) {
+            // Use setState to ensure cleaned state is persisted back to localStorage
+            setTimeout(() => {
+              useUniverseStore.setState({
+                entities: cleanEntities,
+                connections: cleanConnections,
+                myths: cleanMyths,
+                timeline: cleanTimeline,
+                regions: cleanRegions,
+                languages: cleanLanguages,
+                notes: cleanNotes,
+              });
+            }, 0);
+          }
+        }
+      }
+    }
+  )
+);

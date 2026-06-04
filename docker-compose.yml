@@ -1,0 +1,32 @@
+# ============================================================
+# Lorekeeper — Docker Compose
+# Yerelde tek komutla çalıştırma: docker compose up
+# ============================================================
+
+services:
+  # ── Geliştirme modu (Hot Reload) ──
+  app-dev:
+    build:
+      context: .
+      target: development
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules   # node_modules'u mount etme
+    environment:
+      - NODE_ENV=development
+    profiles:
+      - dev
+
+  # ── Production modu (Nginx) ──
+  app-prod:
+    build:
+      context: .
+      target: production
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    profiles:
+      - prod

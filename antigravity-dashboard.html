@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MYTHOS — Kozmos Paneli</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  :root {
+    /* Background & surfaces – space grey palette */
+    --void: #05060a;        /* ana arka plan: uzay grisi */
+    --surface: #0c0e15;     /* paneller için koyu yüzey */
+
+    /* Glass & borders */
+    --glass: rgba(255,255,255,0.02);
+    --glass-border: rgba(255,255,255,0.06);
+
+    /* Accent – rose gold parlamalar */
+    --gold: #f2b8a0;        /* ana rose gold */
+    --gold-dim: rgba(242,184,160,0.35);
+    --gold-pale: #ffe1d2;
+
+    /* Runes & status colors (uzay grisi ile uyumlu) */
+    --rune: #f7c3ad;
+    --friend: #5ac7b5;
+    --enemy: #ff6b7b;
+    --neutral: #9993b8;
+
+    --sidebar-w: 220px;
+    --text-dim: rgba(220,220,235,0.35);
+    --text-mid: rgba(220,220,235,0.75);
+  }
+
+  html, body { width:100%; height:100%; overflow:hidden; background:var(--void); }
+
+  /* ── Cursor ── */
+  #cursor { position:fixed; width:8px; height:8px; background:var(--gold); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:screen; transition:width 0.2s,height 0.2s; }
+  #cursor-ring { position:fixed; width:28px; height:28px; border:1px solid rgba(242,184,160,0.35); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); transition:width 0.2s,height 0.2s; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    position:fixed; left:0; top:0; bottom:0;
+    width:var(--sidebar-w);
+    /* Sidebar: sade, üst parlaklığı azaltılmış uzay grisi */
+    background: linear-gradient(180deg, rgba(14,14,26,0.98) 0%, rgba(6,6,16,0.98) 100%);
+    border-right:1px solid var(--glass-border);
+    backdrop-filter:blur(20px);
+    z-index:100;
+    display:flex; flex-direction:column;
+    padding:0 0 24px;
+    box-shadow: 2px 0 40px rgba(0,0,0,0.6);
+  }
+
+  #sidebar::after {
+    content:'';
+    position:absolute; top:0; right:-1px; bottom:0;
+    width:1px;
+    background:linear-gradient(180deg, transparent, rgba(242,184,160,0.35) 30%, rgba(242,184,160,0.15) 70%, transparent);
+  }
+
+  .sidebar-logo {
+    padding:28px 24px 24px;
+    border-bottom:1px solid var(--glass-border);
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .logo-main {
+    font-family:'Cinzel Decorative',serif;
+    font-size:1rem;
+    letter-spacing:0.3em;
+    color:var(--gold);
+    text-shadow:0 0 22px rgba(242,184,160,0.55);
+  }
+  .logo-sub {
+    font-family:'Cinzel',serif;
+    font-size:0.45rem;
+    letter-spacing:0.4em;
+    color:var(--gold-dim);
+    text-transform:uppercase;
+  }
+
+  .sidebar-section-title {
+    font-family:'Cinzel',serif;
+    font-size:0.45rem;
+    letter-spacing:0.35em;
+    color:rgba(242,184,160,0.38);
+    text-transform:uppercase;
+    padding:20px 24px 8px;
+  }
+
+  .nav-item {
+    display:flex; align-items:center; gap:12px;
+    padding:10px 24px;
+    color:var(--text-dim);
+    font-family:'Cinzel',serif;
+    font-size:0.65rem;
+    letter-spacing:0.15em;
+    cursor:pointer;
+    transition:all 0.25s;
+    position:relative;
+    text-transform:uppercase;
+  }
+  .nav-item::before {
+    content:'';
+    position:absolute; left:0; top:50%; transform:translateY(-50%);
+    width:2px; height:0;
+    background:var(--gold);
+    transition:height 0.25s;
+  }
+  .nav-item:hover { color:var(--gold-pale); }
+  .nav-item:hover::before { height:70%; }
+  .nav-item.active { color:var(--gold-pale); }
+  .nav-item.active::before { height:70%; }
+
+  .nav-icon { width:16px; text-align:center; font-size:0.75rem; opacity:0.7; }
+  .nav-badge {
+    margin-left:auto;
+    font-size:0.45rem;
+    padding:2px 6px;
+    border:1px solid var(--glass-border);
+    border-radius:2px;
+    color:var(--text-dim);
+  }
+
+  .sidebar-divider {
+    height:1px;
+    background:linear-gradient(to right, transparent, var(--glass-border), transparent);
+    margin:12px 24px;
+  }
+
+  .sidebar-bottom {
+    margin-top:auto;
+    padding:16px 24px;
+    border-top:1px solid var(--glass-border);
+  }
+  .user-card {
+    display:flex; align-items:center; gap:10px;
+  }
+  .user-avatar {
+    width:28px; height:28px;
+    border-radius:50%;
+    background:linear-gradient(135deg, rgba(242,184,160,0.28), rgba(120,130,180,0.18));
+    border:1px solid var(--gold-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.55rem;
+    color:var(--gold);
+    font-family:'Cinzel',serif;
+  }
+  .user-info { flex:1; }
+  .user-name { font-family:'Cinzel',serif; font-size:0.55rem; color:var(--text-mid); letter-spacing:0.1em; }
+  .user-role { font-size:0.42rem; color:var(--text-dim); letter-spacing:0.1em; font-family:'Cinzel',serif; }
+
+  /* ── Main area ── */
+  #main {
+    position:fixed;
+    left:var(--sidebar-w); top:0; right:0; bottom:0;
+    display:flex; flex-direction:column;
+  }
+
+  /* ── Topbar ── */
+  #topbar {
+    height:56px;
+    display:flex; align-items:center;
+    padding:0 28px;
+    border-bottom:1px solid var(--glass-border);
+    /* Topbar: sidebar ile map arasında geçiş tonu */
+    background:linear-gradient(90deg, rgba(12,14,24,0.96), rgba(5,6,10,0.96));
+    backdrop-filter:blur(10px);
+    gap:20px;
+    flex-shrink:0;
+  }
+
+  .topbar-title {
+    font-family:'Cinzel',serif;
+    font-size:0.7rem;
+    letter-spacing:0.2em;
+    color:var(--gold-pale);
+    text-transform:uppercase;
+  }
+  .topbar-subtitle {
+    font-family:'EB Garamond',serif;
+    font-size:0.8rem;
+    color:var(--text-dim);
+    font-style:italic;
+  }
+
+  .topbar-spacer { flex:1; }
+
+  /* View toggle */
+  #view-toggle {
+    display:flex; align-items:center;
+    border:1px solid var(--glass-border);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .toggle-btn {
+    padding:6px 14px;
+    font-family:'Cinzel',serif;
+    font-size:0.5rem;
+    letter-spacing:0.15em;
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:all 0.25s;
+    text-transform:uppercase;
+    display:flex; align-items:center; gap:6px;
+    border:none;
+    background:transparent;
+  }
+  .toggle-btn.active {
+    background:rgba(201,168,76,0.08);
+    color:var(--gold);
+  }
+  .toggle-btn:not(.active):hover { background:rgba(255,255,255,0.03); color:var(--text-mid); }
+
+  .topbar-stat {
+    display:flex; flex-direction:column; align-items:flex-end;
+    padding:0 16px;
+    border-left:1px solid var(--glass-border);
+  }
+  .stat-val { font-family:'Cinzel',serif; font-size:0.8rem; color:var(--gold-pale); }
+  .stat-lbl { font-size:0.42rem; color:var(--text-dim); letter-spacing:0.2em; font-family:'Cinzel',serif; text-transform:uppercase; }
+
+  /* ── Cosmos canvas ── */
+  #cosmos-view {
+    flex:1;
+    position:relative;
+    overflow:hidden;
+    /* Harita alanı: sidebar'dan belirgin şekilde daha koyu uzay grisi */
+    background:
+      radial-gradient(circle at center, rgba(0,0,0,0.45) 0, transparent 55%),
+      radial-gradient(circle at bottom right, rgba(0,0,0,0.6) 0, transparent 60%),
+      linear-gradient(135deg, #05060a 0%, #02030a 60%);
+  }
+
+  #three-canvas { display:block; width:100%; height:100%; }
+
+  /* ── Table view ── */
+  #table-view {
+    flex:1;
+    overflow-y:auto;
+    padding:28px;
+    display:none;
+  }
+
+  .table-wrap {
+    border:1px solid var(--glass-border);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .t-header {
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+    padding:10px 20px;
+    background:rgba(201,168,76,0.05);
+    border-bottom:1px solid var(--glass-border);
+  }
+  .t-header span {
+    font-family:'Cinzel',serif;
+    font-size:0.45rem;
+    letter-spacing:0.3em;
+    color:var(--gold-dim);
+    text-transform:uppercase;
+  }
+  .t-row {
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 80px;
+    padding:12px 20px;
+    border-bottom:1px solid rgba(255,255,255,0.03);
+    align-items:center;
+    transition:background 0.2s;
+  }
+  .t-row:hover { background:rgba(255,255,255,0.02); }
+  .t-row:last-child { border-bottom:none; }
+  .t-name { font-family:'Cinzel',serif; font-size:0.65rem; color:var(--text-mid); letter-spacing:0.1em; }
+  .t-type { font-size:0.55rem; color:var(--text-dim); font-family:'EB Garamond',serif; font-style:italic; }
+  .t-rel { font-size:0.55rem; color:var(--text-dim); font-family:'Cinzel',serif; font-size:0.5rem; }
+  .t-status {
+    display:inline-block;
+    padding:2px 8px;
+    border-radius:2px;
+    font-family:'Cinzel',serif;
+    font-size:0.42rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+  }
+  .status-active { background:rgba(77,184,156,0.12); color:var(--friend); border:1px solid rgba(77,184,156,0.2); }
+  .status-dead { background:rgba(232,80,80,0.12); color:var(--enemy); border:1px solid rgba(232,80,80,0.2); }
+  .status-unknown { background:rgba(136,136,187,0.12); color:var(--neutral); border:1px solid rgba(136,136,187,0.2); }
+
+  .t-action {
+    font-size:0.5rem;
+    color:var(--gold-dim);
+    cursor:pointer;
+    font-family:'Cinzel',serif;
+    letter-spacing:0.1em;
+    transition:color 0.2s;
+  }
+  .t-row:hover .t-action { color:var(--gold); }
+
+  /* ── Node tooltip ── */
+  #node-tooltip {
+    position:fixed;
+    background:rgba(8,8,28,0.92);
+    border:1px solid var(--glass-border);
+    border-left:2px solid var(--gold);
+    padding:12px 16px;
+    pointer-events:none;
+    z-index:200;
+    opacity:0;
+    transition:opacity 0.2s;
+    min-width:180px;
+  }
+  #node-tooltip.visible { opacity:1; }
+  .tooltip-name {
+    font-family:'Cinzel',serif;
+    font-size:0.7rem;
+    color:var(--gold-pale);
+    letter-spacing:0.15em;
+    margin-bottom:4px;
+  }
+  .tooltip-type {
+    font-family:'EB Garamond',serif;
+    font-size:0.75rem;
+    color:var(--text-dim);
+    font-style:italic;
+    margin-bottom:8px;
+  }
+  .tooltip-stat {
+    display:flex; justify-content:space-between;
+    font-family:'Cinzel',serif;
+    font-size:0.45rem;
+    color:var(--text-dim);
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    margin-top:4px;
+  }
+  .tooltip-stat span:last-child { color:var(--text-mid); }
+
+  /* ── Legend ── */
+  #legend {
+    position:absolute;
+    bottom:24px; left:24px;
+    display:flex; flex-direction:column; gap:8px;
+    z-index:10;
+  }
+  .legend-item {
+    display:flex; align-items:center; gap:8px;
+    font-family:'Cinzel',serif;
+    font-size:0.45rem;
+    color:var(--text-dim);
+    letter-spacing:0.15em;
+    text-transform:uppercase;
+  }
+  .legend-dot { width:8px; height:8px; border-radius:50%; }
+  .legend-line { width:24px; height:1.5px; border-radius:1px; }
+
+  /* ── Search ── */
+  #search-wrap {
+    position:absolute; top:20px; right:24px; z-index:10;
+  }
+  #cosmos-search {
+    background:rgba(8,8,28,0.7);
+    border:1px solid var(--glass-border);
+    color:var(--text-mid);
+    font-family:'Cinzel',serif;
+    font-size:0.55rem;
+    letter-spacing:0.15em;
+    padding:8px 14px;
+    outline:none;
+    width:200px;
+    transition:border-color 0.25s, box-shadow 0.25s;
+  }
+  #cosmos-search:focus {
+    border-color:var(--gold-dim);
+    box-shadow:0 0 20px rgba(201,168,76,0.08);
+  }
+  #cosmos-search::placeholder { color:rgba(200,200,220,0.2); }
+
+  /* Noise */
+  #noise {
+    position:fixed; inset:0; z-index:1; pointer-events:none; opacity:0.025;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:256px;
+    animation:noiseA 0.4s steps(2) infinite;
+  }
+  @keyframes noiseA { 100% { background-position:256px 256px; } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--glass-border); border-radius:2px; }
+
+  /* Floating controls */
+  #cosmos-controls {
+    position:absolute; bottom:24px; right:24px; z-index:10;
+    display:flex; flex-direction:column; gap:4px;
+  }
+  .ctrl-btn {
+    width:32px; height:32px;
+    background:rgba(8,8,28,0.8);
+    border:1px solid var(--glass-border);
+    color:var(--text-dim);
+    font-size:0.8rem;
+    cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s;
+  }
+  .ctrl-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+  /* Filter pills */
+  #filters {
+    position:absolute; top:20px; left:24px; z-index:10;
+    display:flex; gap:6px;
+  }
+  .filter-pill {
+    padding:5px 12px;
+    border:1px solid var(--glass-border);
+    font-family:'Cinzel',serif;
+    font-size:0.42rem;
+    letter-spacing:0.15em;
+    color:var(--text-dim);
+    cursor:pointer;
+    transition:all 0.25s;
+    text-transform:uppercase;
+    background:rgba(8,8,28,0.7);
+  }
+  .filter-pill.active { border-color:var(--gold-dim); color:var(--gold); background:rgba(201,168,76,0.06); }
+  .filter-pill:hover:not(.active) { border-color:var(--glass-border); color:var(--text-mid); }
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<div id="noise"></div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-main">MYTHOS</div>
+    <div class="logo-sub">Antigravity Platform</div>
+  </div>
+
+  <div class="sidebar-section-title">Evren</div>
+  <div class="nav-item active"><span class="nav-icon">◈</span>Kozmos<span class="nav-badge">247</span></div>
+  <div class="nav-item"><span class="nav-icon">◉</span>Karakterler<span class="nav-badge">89</span></div>
+  <div class="nav-item"><span class="nav-icon">◫</span>Mekanlar<span class="nav-badge">64</span></div>
+  <div class="nav-item"><span class="nav-icon">◬</span>Olaylar<span class="nav-badge">94</span></div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section-title">Dünya</div>
+  <div class="nav-item"><span class="nav-icon">⊛</span>Mitoloji</div>
+  <div class="nav-item"><span class="nav-icon">⊞</span>Zaman Çizelgesi</div>
+  <div class="nav-item"><span class="nav-icon">⋄</span>Haritalar</div>
+  <div class="nav-item"><span class="nav-icon">≋</span>Diller & Alfabeler</div>
+
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section-title">Sistem</div>
+  <div class="nav-item"><span class="nav-icon">⊕</span>Ayarlar</div>
+  <div class="nav-item"><span class="nav-icon">◌</span>Çıkış</div>
+
+  <div class="sidebar-bottom">
+    <div class="user-card">
+      <div class="user-avatar">M</div>
+      <div class="user-info">
+        <div class="user-name">Mythos Yazarı</div>
+        <div class="user-role">Evren Mimarı</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div>
+      <div class="topbar-title">Kozmos Haritası</div>
+      <div class="topbar-subtitle">Antigravity İlişki Ağı</div>
+    </div>
+    <div class="topbar-spacer"></div>
+
+    <div class="topbar-stat">
+      <div class="stat-val">247</div>
+      <div class="stat-lbl">Düğüm</div>
+    </div>
+    <div class="topbar-stat">
+      <div class="stat-val">1,840</div>
+      <div class="stat-lbl">Bağlantı</div>
+    </div>
+
+    <div id="view-toggle">
+      <button class="toggle-btn active" id="btn-cosmos" onclick="switchView('cosmos')">
+        ◈ Kozmos
+      </button>
+      <button class="toggle-btn" id="btn-table" onclick="switchView('table')">
+        ≡ Liste
+      </button>
+    </div>
+  </div>
+
+  <!-- COSMOS VIEW -->
+  <div id="cosmos-view">
+    <canvas id="three-canvas"></canvas>
+
+    <!-- Filters -->
+    <div id="filters">
+      <div class="filter-pill active" onclick="toggleFilter(this,'all')">Tümü</div>
+      <div class="filter-pill" onclick="toggleFilter(this,'character')">Karakterler</div>
+      <div class="filter-pill" onclick="toggleFilter(this,'place')">Mekanlar</div>
+      <div class="filter-pill" onclick="toggleFilter(this,'event')">Olaylar</div>
+    </div>
+
+    <!-- Search -->
+    <div id="search-wrap">
+      <input id="cosmos-search" type="text" placeholder="Düğüm ara...">
+    </div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#7ecfff"></div>Karakter</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div>Mekan</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e8a0d0"></div>Olay</div>
+      <div class="legend-item"><div class="legend-line" style="background:#4db89c"></div>Dostluk</div>
+      <div class="legend-item"><div class="legend-line" style="background:#e85050"></div>Düşmanlık</div>
+      <div class="legend-item"><div class="legend-line" style="background:#8888bb"></div>Nötr</div>
+    </div>
+
+    <!-- Controls -->
+    <div id="cosmos-controls">
+      <div class="ctrl-btn" title="Yakınlaştır">+</div>
+      <div class="ctrl-btn" title="Uzaklaştır">−</div>
+      <div class="ctrl-btn" title="Sıfırla" onclick="resetCamera()">⊙</div>
+    </div>
+  </div>
+
+  <!-- TABLE VIEW -->
+  <div id="table-view">
+    <div class="table-wrap" id="table-body"></div>
+  </div>
+</main>
+
+<!-- Tooltip -->
+<div id="node-tooltip">
+  <div class="tooltip-name" id="tt-name"></div>
+  <div class="tooltip-type" id="tt-type"></div>
+  <div class="tooltip-stat"><span>Bağlantı</span><span id="tt-links"></span></div>
+  <div class="tooltip-stat"><span>Durum</span><span id="tt-status"></span></div>
+  <div class="tooltip-stat"><span>Evre</span><span id="tt-era"></span></div>
+</div>
+
+<script>
+/* ── Cursor ── */
+const cur = document.getElementById('cursor');
+const curR = document.getElementById('cursor-ring');
+let mx=window.innerWidth/2, my=window.innerHeight/2, rx=mx, ry=my;
+document.addEventListener('mousemove', e=>{ mx=e.clientX; my=e.clientY; });
+(function animCur(){
+  rx+=(mx-rx)*0.15; ry+=(my-ry)*0.15;
+  cur.style.left=mx+'px'; cur.style.top=my+'px';
+  curR.style.left=rx+'px'; curR.style.top=ry+'px';
+  requestAnimationFrame(animCur);
+})();
+document.querySelectorAll('.nav-item,.toggle-btn,.filter-pill,.ctrl-btn,.t-row').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{ cur.style.width='12px'; cur.style.height='12px'; });
+  el.addEventListener('mouseleave',()=>{ cur.style.width='8px'; cur.style.height='8px'; });
+});
+
+/* ── Table mode (cosmos vs Dünya sekmeleri) ── */
+let currentTableMode = 'cosmos'; // 'cosmos' | 'mythology' | 'timeline' | 'maps' | 'languages'
+
+/* ── Sidebar navigation behavior ── */
+const sidebarNavItems = document.querySelectorAll('#sidebar .nav-item');
+const topbarTitle = document.querySelector('.topbar-title');
+const topbarSubtitle = document.querySelector('.topbar-subtitle');
+
+sidebarNavItems.forEach((item, index) => {
+  item.addEventListener('click', () => {
+    // Active state
+    sidebarNavItems.forEach(n => n.classList.remove('active'));
+    item.classList.add('active');
+
+    // Evren bölümü (ilk blok: 0–3)
+    if (index === 0) { // Kozmos
+      switchView('cosmos');
+      const pill = document.querySelector('#filters .filter-pill:nth-child(1)');
+      if (pill instanceof HTMLElement) pill.click();
+      if (topbarTitle) topbarTitle.textContent = 'Kozmos Haritası';
+      if (topbarSubtitle) topbarSubtitle.textContent = 'Antigravity İlişki Ağı';
+    } else if (index === 1) { // Karakterler
+      switchView('cosmos');
+      const pill = document.querySelector('#filters .filter-pill:nth-child(2)');
+      if (pill instanceof HTMLElement) pill.click();
+      if (topbarTitle) topbarTitle.textContent = 'Karakter Ağı';
+      if (topbarSubtitle) topbarSubtitle.textContent = 'İlişkili karakter düğümleri';
+    } else if (index === 2) { // Mekanlar
+      switchView('cosmos');
+      const pill = document.querySelector('#filters .filter-pill:nth-child(3)');
+      if (pill instanceof HTMLElement) pill.click();
+      if (topbarTitle) topbarTitle.textContent = 'Mekan Haritası';
+      if (topbarSubtitle) topbarSubtitle.textContent = 'Evrenin coğrafi katmanları';
+    } else if (index === 3) { // Olaylar
+      switchView('cosmos');
+      const pill = document.querySelector('#filters .filter-pill:nth-child(4)');
+      if (pill instanceof HTMLElement) pill.click();
+      if (topbarTitle) topbarTitle.textContent = 'Olaylar Ağı';
+      if (topbarSubtitle) topbarSubtitle.textContent = 'Dönüm noktalarının ilişkileri';
+    } else {
+      // Dünya & Sistem bölümü: tablo / çıkış davranışları
+      // Not: sidebar sırası -> 0-3 Evren, 4-7 Dünya, 8-9 Sistem
+      if (index === 4) { // Mitoloji
+        currentTableMode = 'mythology';
+        switchView('table');
+        if (topbarTitle) topbarTitle.textContent = 'Orta Dünya Mitolojisi';
+        if (topbarSubtitle) topbarSubtitle.textContent = 'Yüzüklerin Efendisi evreninin temel unsurları';
+      } else if (index === 5) { // Zaman Çizelgesi
+        currentTableMode = 'timeline';
+        switchView('table');
+        if (topbarTitle) topbarTitle.textContent = 'Orta Dünya Zaman Çizelgesi';
+        if (topbarSubtitle) topbarSubtitle.textContent = 'Birinci, İkinci ve Üçüncü Çağ kırılma anları';
+      } else if (index === 6) { // Haritalar
+        currentTableMode = 'maps';
+        switchView('table');
+        if (topbarTitle) topbarTitle.textContent = 'Orta Dünya Haritaları';
+        if (topbarSubtitle) topbarSubtitle.textContent = 'Mordor\'dan Shire\'a uzanan coğrafya (taslak)';
+      } else if (index === 7) { // Diller & Alfabeler
+        currentTableMode = 'languages';
+        switchView('table');
+        if (topbarTitle) topbarTitle.textContent = 'Diller & Alfabeler';
+        if (topbarSubtitle) topbarSubtitle.textContent = 'Quenya, Sindarin ve Kara Lisan katmanları';
+      } else if (index === 8) { // Ayarlar
+        currentTableMode = 'system';
+        switchView('table');
+        if (topbarTitle) topbarTitle.textContent = 'Sistem & Altyapı';
+        if (topbarSubtitle) topbarSubtitle.textContent = 'Mythos evren paneli için planlanan geliştirmeler';
+      } else if (index === 9) { // Çıkış
+        // Şimdilik ana giriş ekranına dön: üst çerçeveyi ana sayfaya yönlendir
+        if (window.top) {
+          window.top.location.href = '/';
+        } else {
+          window.location.href = '/';
+        }
+      }
+    }
+  });
+});
+
+/* ── Data ── */
+const NODE_DATA = [
+  // Characters (type=0)
+  {name:'GANDALF',type:0,era:'Üçüncü Çağ',status:'Aktif',links:24},
+  {name:'ARAGORN',type:0,era:'Üçüncü Çağ',status:'Aktif',links:31},
+  {name:'FRODO',type:0,era:'Üçüncü Çağ',status:'Aktif',links:18},
+  {name:'SAURON',type:0,era:'İkinci Çağ',status:'Ölü',links:45},
+  {name:'GOLLUM',type:0,era:'Üçüncü Çağ',status:'Ölü',links:12},
+  {name:'SARUMAN',type:0,era:'Üçüncü Çağ',status:'Ölü',links:20},
+  {name:'LEGOLAS',type:0,era:'Üçüncü Çağ',status:'Aktif',links:14},
+  {name:'GIMLI',type:0,era:'Üçüncü Çağ',status:'Aktif',links:11},
+  {name:'BOROMIR',type:0,era:'Üçüncü Çağ',status:'Ölü',links:9},
+  {name:'ARWEN',type:0,era:'Üçüncü Çağ',status:'Aktif',links:8},
+  {name:'ELROND',type:0,era:'İkinci Çağ',status:'Aktif',links:22},
+  {name:'GALADRIEL',type:0,era:'Birinci Çağ',status:'Aktif',links:28},
+  // Places (type=1)
+  {name:'MORDOR',type:1,era:'İkinci Çağ',status:'Yok',links:38},
+  {name:'THE SHIRE',type:1,era:'Üçüncü Çağ',status:'Aktif',links:15},
+  {name:'RIVENDELL',type:1,era:'İkinci Çağ',status:'Aktif',links:26},
+  {name:'MINAS TIRITH',type:1,era:'Üçüncü Çağ',status:'Aktif',links:32},
+  {name:'ISENGARD',type:1,era:'Üçüncü Çağ',status:'Yıkık',links:18},
+  {name:'ROHAN',type:1,era:'Üçüncü Çağ',status:'Aktif',links:21},
+  {name:'LOTHLORIEN',type:1,era:'Birinci Çağ',status:'Soluk',links:19},
+  {name:'KHAZAD DUM',type:1,era:'Birinci Çağ',status:'Terk',links:14},
+  // Events (type=2)
+  {name:'YÜZÜK SAVAŞI',type:2,era:'Üçüncü Çağ',status:'Bitti',links:42},
+  {name:'DAGORLAD',type:2,era:'İkinci Çağ',status:'Bitti',links:28},
+  {name:'HELM YARI',type:2,era:'Üçüncü Çağ',status:'Bitti',links:19},
+  {name:'PELENNOR',type:2,era:'Üçüncü Çağ',status:'Bitti',links:35},
+  {name:'KUZGUNKÖY',type:2,era:'Üçüncü Çağ',status:'Bitti',links:11},
+  {name:'EREBOR',type:2,era:'Üçüncü Çağ',status:'Bitti',links:16},
+];
+
+const EDGES = [
+  // Character–Character
+  {a:0,b:1,rel:1},{a:0,b:2,rel:1},{a:0,b:3,rel:-1},{a:0,b:4,rel:-1},
+  {a:1,b:2,rel:1},{a:1,b:3,rel:-1},{a:1,b:9,rel:1},{a:1,b:10,rel:1},
+  {a:2,b:4,rel:-1},{a:2,b:5,rel:-1},{a:3,b:5,rel:0},
+  {a:0,b:5,rel:-1},{a:6,b:7,rel:1},{a:6,b:1,rel:1},
+  {a:7,b:8,rel:1},{a:8,b:1,rel:1},{a:10,b:11,rel:1},
+  {a:11,b:0,rel:1},{a:11,b:1,rel:1},
+  // Character–Place
+  {a:3,b:12,rel:0},{a:2,b:13,rel:1},{a:0,b:14,rel:1},
+  {a:1,b:15,rel:1},{a:5,b:16,rel:0},{a:11,b:18,rel:1},
+  // Character–Event
+  {a:0,b:20,rel:1},{a:1,b:20,rel:1},{a:2,b:20,rel:1},
+  {a:3,b:21,rel:0},{a:5,b:22,rel:-1},{a:1,b:23,rel:1},
+  // Place–Event
+  {a:12,b:20,rel:-1},{a:15,b:23,rel:0},{a:16,b:22,rel:-1},
+  {a:17,b:22,rel:1},{a:13,b:24,rel:0},
+];
+
+/* ── Three.js ── */
+const canvas = document.getElementById('three-canvas');
+const cosmosView = document.getElementById('cosmos-view');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+camera.position.set(0, 0, 120);
+
+function resizeRenderer() {
+  const w = cosmosView.offsetWidth, h = cosmosView.offsetHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+}
+resizeRenderer();
+window.addEventListener('resize', resizeRenderer);
+
+/* Node colors */
+const NODE_COLORS = [0x7ecfff, 0xc9a84c, 0xe8a0d0];
+const NODE_SIZES  = [2.2, 3.0, 1.8];
+
+/* Build nodes */
+const nodeMeshes = [];
+const nodePositions = [];
+const labelDivs = [];
+
+NODE_DATA.forEach((n, i) => {
+  const angle = (i / NODE_DATA.length) * Math.PI * 2;
+  const radius = 25 + Math.sin(i * 1.3) * 15;
+  const x = Math.cos(angle) * radius + (Math.random()-0.5)*20;
+  const y = Math.sin(angle * 1.6) * 20 + (Math.random()-0.5)*15;
+  const z = Math.cos(angle * 0.7) * 20 + (Math.random()-0.5)*15;
+  nodePositions.push(new THREE.Vector3(x, y, z));
+
+  // Glow sphere
+  const geo = new THREE.SphereGeometry(NODE_SIZES[n.type] * 0.5, 16, 16);
+  const mat = new THREE.MeshBasicMaterial({ color: NODE_COLORS[n.type], transparent:true, opacity:0.85 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.userData = { index:i, origY:y, phase:Math.random()*Math.PI*2, speed:0.4+Math.random()*0.3 };
+  scene.add(mesh);
+  nodeMeshes.push(mesh);
+
+  // Halo ring
+  const ringGeo = new THREE.RingGeometry(NODE_SIZES[n.type]*0.6, NODE_SIZES[n.type]*0.85, 32);
+  const ringMat = new THREE.MeshBasicMaterial({ color:NODE_COLORS[n.type], transparent:true, opacity:0.2, side:THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(x,y,z);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+
+  // Label
+  const label = document.createElement('div');
+  label.style.cssText = `position:fixed;font-family:'Cinzel',serif;font-size:0.45rem;letter-spacing:0.15em;
+    color:rgba(200,200,220,0.55);pointer-events:none;z-index:50;white-space:nowrap;
+    text-shadow:0 0 10px rgba(0,0,0,0.8);transform:translateX(-50%);transition:color 0.2s,text-shadow 0.2s;`;
+  label.textContent = n.name;
+  document.body.appendChild(label);
+  labelDivs.push({ el:label, ring });
+});
+
+/* Build edges */
+const edgeLines = [];
+EDGES.forEach(e => {
+  const a = nodePositions[e.a], b = nodePositions[e.b];
+  const color = e.rel === 1 ? 0x4db89c : e.rel === -1 ? 0xe85050 : 0x8888bb;
+  const pts = [];
+  const mid = new THREE.Vector3().addVectors(a,b).multiplyScalar(0.5);
+  mid.y += (Math.random()-0.5)*8;
+  for(let t=0; t<=20; t++){
+    const tt = t/20;
+    pts.push(new THREE.Vector3(
+      (1-tt)*(1-tt)*a.x + 2*(1-tt)*tt*mid.x + tt*tt*b.x,
+      (1-tt)*(1-tt)*a.y + 2*(1-tt)*tt*mid.y + tt*tt*b.y,
+      (1-tt)*(1-tt)*a.z + 2*(1-tt)*tt*mid.z + tt*tt*b.z,
+    ));
+  }
+  const geo = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat = new THREE.LineBasicMaterial({ color, transparent:true, opacity:0.25 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  edgeLines.push({ line, rel:e.rel, phase:Math.random()*Math.PI*2 });
+});
+
+/* Particles (cosmic dust) */
+const dustGeo = new THREE.BufferGeometry();
+const dustPos = new Float32Array(600*3);
+for(let i=0;i<600;i++){
+  dustPos[i*3]=(Math.random()-0.5)*300;
+  dustPos[i*3+1]=(Math.random()-0.5)*200;
+  dustPos[i*3+2]=(Math.random()-0.5)*150;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPos,3));
+const dustMat = new THREE.PointsMaterial({ color:0x7ecfff, size:0.4, transparent:true, opacity:0.35 });
+const dust = new THREE.Points(dustGeo, dustMat);
+scene.add(dust);
+
+/* Raycaster for hover */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+const tooltip = document.getElementById('node-tooltip');
+let hoveredNode = -1;
+
+document.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = ((e.clientX - rect.left) / rect.width)*2-1;
+  mouse.y = -((e.clientY - rect.top) / rect.height)*2+1;
+  
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(nodeMeshes);
+  
+  if(hits.length > 0){
+    const idx = hits[0].object.userData.index;
+    if(hoveredNode !== idx){
+      hoveredNode = idx;
+      const nd = NODE_DATA[idx];
+      const types = ['Karakter','Mekan','Olay'];
+      document.getElementById('tt-name').textContent = nd.name;
+      document.getElementById('tt-type').textContent = types[nd.type];
+      document.getElementById('tt-links').textContent = nd.links + ' bağlantı';
+      document.getElementById('tt-status').textContent = nd.status;
+      document.getElementById('tt-era').textContent = nd.era;
+      tooltip.style.left = (e.clientX+16)+'px';
+      tooltip.style.top = (e.clientY-10)+'px';
+      tooltip.classList.add('visible');
+      
+      // Highlight edges
+      EDGES.forEach((edge, i) => {
+        const isConnected = edge.a === idx || edge.b === idx;
+        edgeLines[i].line.material.opacity = isConnected ? 0.7 : 0.06;
+      });
+      nodeMeshes.forEach((m,i) => {
+        const isConn = EDGES.some(edge=>(edge.a===idx&&edge.b===i)||(edge.b===idx&&edge.a===i));
+        m.material.opacity = (i===idx||isConn) ? 1.0 : 0.3;
+      });
+    }
+    tooltip.style.left = (e.clientX+16)+'px';
+    tooltip.style.top = (e.clientY-10)+'px';
+  } else {
+    if(hoveredNode !== -1){
+      hoveredNode = -1;
+      tooltip.classList.remove('visible');
+      edgeLines.forEach(el => el.line.material.opacity = 0.25);
+      nodeMeshes.forEach(m => m.material.opacity = 0.85);
+    }
+  }
+});
+
+/* Orbit controls (simple) */
+let isDragging = false, prevX=0, prevY=0;
+let rotY=0, rotX=0, targetY=0, targetX=0;
+let zoomLevel = 120, targetZoom = 120;
+
+canvas.addEventListener('mousedown', e=>{ isDragging=true; prevX=e.clientX; prevY=e.clientY; });
+window.addEventListener('mouseup', ()=>{ isDragging=false; });
+canvas.addEventListener('mousemove', e=>{
+  if(!isDragging) return;
+  targetY += (e.clientX-prevX)*0.006;
+  targetX += (e.clientY-prevY)*0.004;
+  targetX = Math.max(-0.8, Math.min(0.8, targetX));
+  prevX=e.clientX; prevY=e.clientY;
+});
+canvas.addEventListener('wheel', e=>{
+  targetZoom += e.deltaY*0.3;
+  targetZoom = Math.max(40, Math.min(250, targetZoom));
+});
+
+function resetCamera(){ targetY=0; targetX=0; targetZoom=120; }
+window.resetCamera = resetCamera;
+
+/* Label projection */
+const tempV = new THREE.Vector3();
+function projectToScreen(pos) {
+  tempV.copy(pos).project(camera);
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (tempV.x*0.5+0.5)*rect.width + rect.left,
+    y: (-tempV.y*0.5+0.5)*rect.height + rect.top,
+    behind: tempV.z > 1
+  };
+}
+
+/* Animation */
+let time = 0;
+(function animate(){
+  requestAnimationFrame(animate);
+  time += 0.008;
+
+  // Smooth camera
+  rotY += (targetY - rotY)*0.06;
+  rotX += (targetX - rotX)*0.06;
+  zoomLevel += (targetZoom - zoomLevel)*0.06;
+
+  scene.rotation.y = rotY;
+  scene.rotation.x = rotX;
+  camera.position.z = zoomLevel;
+
+  // Antigravity node float
+  nodeMeshes.forEach((m, i) => {
+    const d = m.userData;
+    m.position.y = d.origY + Math.sin(time*d.speed + d.phase)*1.8;
+    labelDivs[i].ring.position.copy(m.position);
+    labelDivs[i].ring.lookAt(camera.position);
+  });
+
+  // Edge pulse
+  edgeLines.forEach((el, i) => {
+    const base = hoveredNode === -1 ? 0.22 : (el.line.material.opacity > 0.3 ? 0.7 : 0.06);
+    if(hoveredNode === -1){
+      el.line.material.opacity = base + Math.sin(time*0.8+el.phase)*0.06;
+    }
+  });
+
+  // Dust drift
+  dust.rotation.y = time*0.02;
+  dust.rotation.x = Math.sin(time*0.01)*0.05;
+
+  renderer.render(scene, camera);
+
+  // Update labels
+  labelDivs.forEach((ld, i) => {
+    const proj = projectToScreen(nodeMeshes[i].position);
+    if(proj.behind){ ld.el.style.opacity='0'; return; }
+    ld.el.style.left = proj.x+'px';
+    ld.el.style.top = (proj.y + NODE_SIZES[NODE_DATA[i].type]*8 + 4)+'px';
+    const dim = hoveredNode === -1 ? 1 : (EDGES.some(e=>(e.a===hoveredNode&&e.b===i)||(e.b===hoveredNode&&e.a===i))||i===hoveredNode) ? 1 : 0.15;
+    ld.el.style.opacity = dim;
+    if(i === hoveredNode){
+      ld.el.style.color = '#e8d5a3';
+      ld.el.style.textShadow = '0 0 15px rgba(201,168,76,0.6)';
+    } else {
+      ld.el.style.color = '';
+      ld.el.style.textShadow = '0 0 10px rgba(0,0,0,0.8)';
+    }
+  });
+})();
+
+/* ── View switch ── */
+function switchView(v){
+  const cosmos = document.getElementById('cosmos-view');
+  const table = document.getElementById('table-view');
+  const btnC = document.getElementById('btn-cosmos');
+  const btnT = document.getElementById('btn-table');
+  
+  if(v==='cosmos'){
+    cosmos.style.display='block'; table.style.display='none';
+    btnC.classList.add('active'); btnT.classList.remove('active');
+    labelDivs.forEach(l=>l.el.style.display='block');
+  } else {
+    cosmos.style.display='none'; table.style.display='block';
+    btnC.classList.remove('active'); btnT.classList.add('active');
+    labelDivs.forEach(l=>l.el.style.display='none');
+    buildTable();
+  }
+}
+window.switchView = switchView;
+
+function buildTable(){
+  const tbody = document.getElementById('table-body');
+  const statusClass = {
+    'Aktif':'status-active',
+    'Ölü':'status-dead',
+    'Bitti':'status-dead',
+    'Yok':'status-dead',
+    'Yıkık':'status-dead',
+    'Terk':'status-dead',
+    'Soluk':'status-unknown',
+    'Yaklaşık':'status-unknown'
+  };
+
+  // Farklı modlar için satırlar
+  if (currentTableMode === 'cosmos') {
+    const types = ['Karakter','Mekan','Olay'];
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Ad</span><span>Tür</span><span>Evre</span><span>Durum</span><span>İşlem</span>
+      </div>
+      ${NODE_DATA.map((n) => `
+        <div class="t-row">
+          <div class="t-name">${n.name}</div>
+          <div class="t-type">${types[n.type]}</div>
+          <div class="t-rel">${n.era}</div>
+          <div><span class="t-status ${statusClass[n.status]||'status-unknown'}">${n.status}</span></div>
+          <div class="t-action">Görüntüle →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  if (currentTableMode === 'mythology') {
+    const rows = [
+      { name: 'Eru Ilúvatar', type: 'Yaratıcı İlke', era: 'Zamanın Ötesi', status: 'Aktif' },
+      { name: 'Valar & Maiar', type: 'Yüce Varlıklar', era: 'Dünya\'nın Şekillenişi', status: 'Aktif' },
+      { name: 'Silmariller', type: 'Eser', era: 'Birinci Çağ', status: 'Yaklaşık' },
+      { name: 'Güç Yüzükleri', type: 'Eser', era: 'İkinci Çağ', status: 'Yaklaşık' },
+      { name: 'Sauron\'un Yükselişi', type: 'Mitolojik Tema', era: 'İkinci & Üçüncü Çağ', status: 'Yaklaşık' }
+    ];
+
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Öge</span><span>Tür</span><span>Dönem</span><span>Durum</span><span>Not</span>
+      </div>
+      ${rows.map(r => `
+        <div class="t-row">
+          <div class="t-name">${r.name}</div>
+          <div class="t-type">${r.type}</div>
+          <div class="t-rel">${r.era}</div>
+          <div><span class="t-status ${statusClass[r.status]||'status-unknown'}">${r.status}</span></div>
+          <div class="t-action">Detay taslağı →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  if (currentTableMode === 'timeline') {
+    const rows = [
+      { name: 'Lamps Çağı & Tengwar Öncesi', type: 'Mitolojik Başlangıç', era: 'Dünyanın İlk Biçimi', status: 'Yaklaşık' },
+      { name: 'Birinci Çağ: Silmaril Savaşları', type: 'Çağ', era: 'Noldor İsyanı, Beleriand', status: 'Yaklaşık' },
+      { name: 'İkinci Çağ: Númenor & Yüzükler', type: 'Çağ', era: 'Güç Yüzükleri, Númenor\'un Çöküşü', status: 'Yaklaşık' },
+      { name: 'Üçüncü Çağ: Yüzük Savaşı', type: 'Çağ', era: 'Hobbit ve LotR Olayları', status: 'Yaklaşık' },
+      { name: 'Dördüncü Çağ: İnsanların Çağı', type: 'Sonrası', era: 'Elflerin Ayrılışı', status: 'Yaklaşık' }
+    ];
+
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Dilim</span><span>Kapsam</span><span>Öne Çıkanlar</span><span>Kesinlik</span><span>İşlem</span>
+      </div>
+      ${rows.map(r => `
+        <div class="t-row">
+          <div class="t-name">${r.name}</div>
+          <div class="t-type">${r.type}</div>
+          <div class="t-rel">${r.era}</div>
+          <div><span class="t-status ${statusClass[r.status]||'status-unknown'}">${r.status}</span></div>
+          <div class="t-action">Çizelgeyi aç →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  if (currentTableMode === 'languages') {
+    const rows = [
+      { name: 'Quenya', type: 'Elf Dili', era: 'Birinci Çağ ağırlıklı', status: 'Aktif' },
+      { name: 'Sindarin', type: 'Elf Dili', era: 'Üçüncü Çağ boyunca yaygın', status: 'Aktif' },
+      { name: 'Kara Lisan', type: 'Mordor Dili', era: 'İkinci & Üçüncü Çağ', status: 'Yaklaşık' },
+      { name: 'Cüce Dili (Khuzdul)', type: 'Gizli Dil', era: 'Tüm Çağlar', status: 'Yaklaşık' },
+      { name: 'Orta Dil (Westron)', type: 'Ortak Dil', era: 'Üçüncü Çağ', status: 'Aktif' }
+    ];
+
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Dil</span><span>Tür</span><span>Kullanım Dönemi</span><span>Durum</span><span>Not</span>
+      </div>
+      ${rows.map(r => `
+        <div class="t-row">
+          <div class="t-name">${r.name}</div>
+          <div class="t-type">${r.type}</div>
+          <div class="t-rel">${r.era}</div>
+          <div><span class="t-status ${statusClass[r.status]||'status-unknown'}">${r.status}</span></div>
+          <div class="t-action">Dil profili →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  // maps modu: şimdilik basit taslak
+  if (currentTableMode === 'maps') {
+    const rows = [
+      { name: 'Orta Dünya Genel Haritası', type: 'Genel', era: 'Üçüncü Çağ', status: 'Yaklaşık' },
+      { name: 'Mordor Bölgesi', type: 'Bölgesel', era: 'İkinci & Üçüncü Çağ', status: 'Yaklaşık' },
+      { name: 'Gondor & Rohan', type: 'Bölgesel', era: 'Üçüncü Çağ', status: 'Yaklaşık' }
+    ];
+
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Harita</span><span>Kapsam</span><span>Dönem</span><span>Durum</span><span>İşlem</span>
+      </div>
+      ${rows.map(r => `
+        <div class="t-row">
+          <div class="t-name">${r.name}</div>
+          <div class="t-type">${r.type}</div>
+          <div class="t-rel">${r.era}</div>
+          <div><span class="t-status ${statusClass[r.status]||'status-unknown'}">${r.status}</span></div>
+          <div class="t-action">Harita taslağı →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+
+  // system modu: yapılacaklar / planlanan özellikler
+  if (currentTableMode === 'system') {
+    const rows = [
+      { name: 'Kullanıcı & rol sistemi', type: 'Yetkilendirme', era: 'v1.x planı', status: 'Yaklaşık' },
+      { name: 'Oturum & cihaz yönetimi', type: 'Güvenlik', era: 'v1.x planı', status: 'Yaklaşık' },
+      { name: 'Otomatik yedekleme', type: 'Altyapı', era: 'v1.x planı', status: 'Yaklaşık' },
+      { name: 'Versiyonlama & taslak sistemi', type: 'İçerik Yönetimi', era: 'v1.x planı', status: 'Yaklaşık' },
+      { name: 'Dışa aktarma (PDF / JSON)', type: 'Paylaşım', era: 'v1.x planı', status: 'Yaklaşık' }
+    ];
+
+    tbody.innerHTML = `
+      <div class="t-header">
+        <span>Özellik</span><span>Alan</span><span>Sürüm</span><span>Durum</span><span>Not</span>
+      </div>
+      ${rows.map(r => `
+        <div class="t-row">
+          <div class="t-name">${r.name}</div>
+          <div class="t-type">${r.type}</div>
+          <div class="t-rel">${r.era}</div>
+          <div><span class="t-status ${statusClass[r.status]||'status-unknown'}">${r.status}</span></div>
+          <div class="t-action">Yol haritasına ekle →</div>
+        </div>
+      `).join('')}
+    `;
+    return;
+  }
+}
+
+/* Filter pills */
+function toggleFilter(el, type){
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  // Visual filter
+  nodeMeshes.forEach((m,i) => {
+    const typeIdx = NODE_DATA[i].type;
+    const show = type==='all' || (type==='character'&&typeIdx===0) || (type==='place'&&typeIdx===1) || (type==='event'&&typeIdx===2);
+    m.visible = show;
+    labelDivs[i].el.style.display = show ? 'block' : 'none';
+    labelDivs[i].ring.visible = show;
+  });
+  edgeLines.forEach((el, i) => {
+    const edge = EDGES[i];
+    const aShow = nodeMeshes[edge.a].visible, bShow = nodeMeshes[edge.b].visible;
+    el.line.visible = aShow && bShow;
+  });
+}
+window.toggleFilter = toggleFilter;
+</script>
+</body>
+</html>
