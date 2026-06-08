@@ -51,7 +51,7 @@ export function CustomCursor() {
   return (
     <>
       <div
-        className="fixed pointer-events-none z-[99999] rounded-full bg-mythos-accent mix-blend-screen shadow-[0_0_14px_rgba(212,175,55,0.7)]"
+        className="fixed pointer-events-none z-[99999] rounded-full bg-mythos-accent shadow-[0_0_14px_rgba(212,175,55,0.7)]"
         style={{
           width: '8px',
           height: '8px',

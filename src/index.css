@@ -12,12 +12,6 @@
 }
 
 @layer base {
-  * {
-    cursor: none !important;
-  }
-  
-  input, select, textarea, button { cursor: none !important; }
-  input[type="text"], input[type="password"], input[type="email"], textarea { cursor: none !important; }
   body {
     background-color: var(--color-mythos-bg);
     color: #e5e7eb;
