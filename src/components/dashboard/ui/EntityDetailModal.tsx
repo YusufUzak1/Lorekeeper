@@ -21,10 +21,6 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
   const [isDragging, setIsDragging] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  if (!entity) return null;
-
-  const connections = getConnectionsForEntity(entity.id);
 
   // Convert file to base64 data URL
   const processFile = (file: File) => {
@@ -67,6 +63,10 @@ export function EntityDetailModal({ entity, isOpen, onClose }: EntityDetailModal
     const file = e.dataTransfer.files?.[0];
     if (file) processFile(file);
   }, []);
+
+  if (!entity) return null;
+
+  const connections = getConnectionsForEntity(entity.id);
 
   const handleSaveImage = () => {
     if (tempImageUrl) {
