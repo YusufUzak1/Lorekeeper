@@ -12,6 +12,9 @@
 }
 
 @layer base {
+  * {
+    cursor: none !important;
+  }
   body {
     background-color: var(--color-mythos-bg);
     color: #e5e7eb;
